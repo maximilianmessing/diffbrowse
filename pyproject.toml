@@ -7,6 +7,11 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = ["browser-harness==0.1.13", "httpx[http2]>=0.28,<1"]
 
+[project.optional-dependencies]
+mlx = ["mlx>=0.32.2", "mlx-vlm>=0.7.1", "mlx-lm>=0.31.0"]
+cuda = ["torch>=2.4.0", "transformers>=4.44.0", "accelerate>=0.33.0"]
+rocm = ["torch>=2.4.0", "transformers>=4.44.0", "accelerate>=0.33.0"]
+
 [project.scripts]
 jev = "jev_ultrafast.demo:main"
 
@@ -15,7 +20,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["pytest>=8.4,<9", "ruff>=0.14,<1", "pillow>=11,<13"]
+dev = ["pytest>=8.4,<9", "ruff>=0.14,<1", "pillow>=11,<13", "matplotlib>=3.10"]
 
 [tool.ruff]
 line-length = 120

@@ -1,10 +1,9 @@
 <img src="docs/banner.svg" alt="Jev Ultrafast · Browser Use × TypeSafe" width="100%" />
 
-# Jev Ultrafast ⚡
+# DiffBrowse ⚡
 
-> [!IMPORTANT]
-> **The Browser Use Cloud waitlist is open.** Get early access to ultrafast browser agents in the cloud.
-> **[Join the waitlist →](https://browser-use.com/ultrafast?utm_source=github&utm_medium=readme&utm_campaign=jev-ultrafast)**
+> **A sub-second, 100% air-gapped local browser agent powered by discrete diffusion on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo.**  
+> Built on the foundation of [`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast) as an open-source local alternative.
 
 **A browser agent with a dynamic, indexed action space.**
 
@@ -66,6 +65,16 @@ Open **http://127.0.0.1:8766** and click **Start demo → Run automatically**. T
 Chrome connects through [Browser Harness](https://github.com/browser-use/browser-harness), installed by `uv sync`. Run `uv run browser-harness --doctor` if it needs connecting. Allow remote debugging in Chrome when prompted.
 
 `TEXT_MODEL_API_KEY` is an OpenRouter key in the example configuration. The current demo uses `inception/mercury-2.5` with reasoning disabled. Gemini, GLM, and DeepSeek can also use the OpenAI-compatible text helper; configure the appropriate model, endpoint, and reasoning setting.
+
+### DiffBrowse: Local Hardware-Accelerated & Air-Gapped Mode 🍏⚡
+
+[DiffBrowse](FORK.md) is an experimental discrete-diffusion browser agent built on top of `jev-ultrafast`, running 100% locally on local hardware with Google DeepMind's DiffusionGemma:
+
+- **Apple Silicon (M-Series)**: Uses Apple MLX Metal (`uv sync --extra mlx` → `JEV_BACKEND=mlx_direct uv run jev`)
+- **NVIDIA DGX Spark / Hopper**: Uses CUDA with FlashAttention (`uv sync --extra cuda` → `JEV_BACKEND=torch_direct uv run jev`)
+- **AMD Strix Halo (Ryzen AI Max 395)**: Uses ROCm 6.2+ on unified LPDDR5X (`uv sync --extra rocm` → `JEV_BACKEND=torch_direct uv run jev`)
+
+See [docs/hardware_acceleration.md](docs/hardware_acceleration.md) for full setup guides on DGX Spark & Strix Halo, [docs/blog_post.md](docs/blog_post.md) for benchmarks, and [FORK.md](FORK.md) for the fork by [@maximilianmessing](https://github.com/maximilianmessing).
 
 ## Use the library
 

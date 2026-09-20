@@ -31,7 +31,13 @@ def load_environment():
 
 def response_state():
     state = AGENT.snapshot() if AGENT else {"page": None, "status": "idle", "history": [], "decision": None}
-    return {**state, "text_model": os.environ.get("TEXT_MODEL", "deepseek-chat"), "max_steps": MAX_STEPS}
+    backend_name = getattr(getattr(AGENT, "backend", None), "name", "jev") if AGENT else "jev"
+    return {
+        **state,
+        "backend": backend_name,
+        "text_model": os.environ.get("TEXT_MODEL", "deepseek-chat"),
+        "max_steps": MAX_STEPS,
+    }
 
 
 def close_browser():
@@ -51,6 +57,29 @@ def command(name, body):
         if not goal or len(goal) > 2000:
             raise ValueError("Enter 1–2,000 characters")
         close_browser()
+        backend_name = body.get("backend")
+        backend_obj = None
+        if backend_name == "mlx_direct":
+            from .backends import MlxDiffusionDirectBackend
+
+            backend_obj = MlxDiffusionDirectBackend(canvas_length=32, num_passes=2)
+        elif backend_name == "hybrid":
+            from .backends import HybridBackend
+
+            backend_obj = HybridBackend()
+        elif backend_name == "mlx_generate":
+            from .backends import MlxDiffusionGenerateBackend
+
+            backend_obj = MlxDiffusionGenerateBackend()
+        elif backend_name == "torch_direct":
+            from .backends import TorchDiffusionDirectBackend
+
+            backend_obj = TorchDiffusionDirectBackend()
+        elif backend_name == "jev":
+            from .backends import JevBackend
+
+            backend_obj = JevBackend()
+
         AGENT = Agent(
             "https://www.google.com/travel/flights?hl=en"
             if scenario == "flights"
@@ -58,6 +87,7 @@ def command(name, body):
             goal,
             screenshots=True,
             record_dir=Path.cwd() / "artifacts" / "frames" if body.get("record") else None,
+            backend=backend_obj,
         )
         AGENT.state["scenario"] = scenario
     else:

@@ -1,6 +1,7 @@
 """The complete agent loop. Typed choices, observable state, bounded execution."""
 
 import base64
+import os
 import time
 from pathlib import Path
 
@@ -10,12 +11,37 @@ from .questions import MAX_STEPS
 
 
 class Agent:
-    def __init__(self, url, goals, *, record_dir=None, screenshots=False):
+    def __init__(self, url, goals, *, record_dir=None, screenshots=False, backend=None):
         task = goals.strip() if isinstance(goals, str) else "\n".join(goals).strip()
         if not task:
             raise ValueError("Supply a task")
         plan = [task]
         self.pending_text = None
+
+        if backend is None:
+            backend_env = os.environ.get("JEV_BACKEND", "jev").lower()
+            if backend_env in ("mlx", "mlx_direct", "diffusiongemma"):
+                from .backends import MlxDiffusionDirectBackend
+
+                self.backend = MlxDiffusionDirectBackend()
+            elif backend_env in ("mlx_generate", "generate"):
+                from .backends import MlxDiffusionGenerateBackend
+
+                self.backend = MlxDiffusionGenerateBackend()
+            elif backend_env in ("hybrid",):
+                from .backends import HybridBackend
+
+                self.backend = HybridBackend()
+            elif backend_env in ("torch_direct", "cuda", "rocm", "torch"):
+                from .backends import TorchDiffusionDirectBackend
+
+                self.backend = TorchDiffusionDirectBackend()
+            else:
+                from .backends import JevBackend
+
+                self.backend = JevBackend()
+        else:
+            self.backend = backend
         self.browser = Browser(url)
         self.record_dir = Path(record_dir) if record_dir else None
         self.screenshots = screenshots or bool(record_dir)
@@ -38,6 +64,7 @@ class Agent:
             elapsed_ms=0,
             started_at=None,
             record=bool(self.record_dir),
+            backend=getattr(self.backend, "name", "jev"),
         )
         if self.record_dir:
             self.record_dir.mkdir(parents=True, exist_ok=True)
@@ -74,7 +101,8 @@ class Agent:
                 raise ValueError("This run has stopped. Start a fresh demo.")
             if len(state["decisions"]) >= MAX_STEPS * 2:
                 raise ValueError("Reached the demo's model-call budget")
-            state["decision"] = choose(state["page"], state["goal"], state["history"])
+            backend = getattr(self, "backend", None)
+            state["decision"] = choose(state["page"], state["goal"], state["history"], backend=backend)
             state["decisions"].append(
                 {
                     **state["decision"],
@@ -110,7 +138,7 @@ class Agent:
                 if self.pending_text and self.pending_text[0] == context:
                     _, text, helper = self.pending_text
                 else:
-                    text, helper = field_text(context)
+                    text, helper = field_text(context, backend=getattr(self, "backend", None))
                     self.pending_text = (context, text, helper)
                     state["text_calls"].append({**helper, "field": action["label"], "value": text})
             # Browser.act checks freshness immediately before input, including after text generation.
@@ -124,17 +152,21 @@ class Agent:
                     "action": action["label"],
                     "kind": action["kind"],
                     "choice": selected,
-                    "probability": decision["probabilities"][selected],
-                    "confidence": decision["confidence"],
-                    "latency_ms": decision["latency_ms"],
+                    "probability": decision["probabilities"].get(selected, 0.0),
+                    "confidence": decision.get("confidence", 1.0),
+                    "latency_ms": decision.get("latency_ms", 0),
                     "text": text,
                     "text_helper": helper["model"] if helper else None,
                     "text_latency_ms": helper["latency_ms"] if helper else 0,
-                    "operation": decision["operation"],
-                    "target": decision["target"],
+                    "operation": decision.get("operation"),
+                    "target": decision.get("target"),
                     "page_changed": None,
                     "url": page["url"],
-                    "usage": decision["usage"],
+                    "usage": decision.get("usage", {}),
+                    "backend": decision.get("backend", "jev"),
+                    "entropy": decision.get("entropy", 0.0),
+                    "top2_margin": decision.get("top2_margin", 1.0),
+                    "candidate_count": len(decision.get("probabilities", {})),
                     "executed_ms": round((time.perf_counter() - state["started_at"]) * 1000),
                     "elapsed_ms": state["elapsed_ms"],
                 }

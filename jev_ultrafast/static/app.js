@@ -34,6 +34,7 @@ function controls() {
   const live = state?.page && !["done", "blocked"].includes(state.status);
   $("start").disabled = busy;
   $("scenario").disabled = busy;
+  if ($("backend")) $("backend").disabled = busy;
   $("goal").disabled = busy;
   $("choose").disabled = busy || !live;
   $("execute").disabled = busy || !state?.decision || !live;
@@ -87,6 +88,22 @@ function render() {
     blocked: "Stopped · no supported next action",
   };
   $("status").textContent = labels[state.status] || state.status;
+  if ($("telemetry")) {
+    const backend = state.backend || "mlx_direct";
+    let info = `[${backend}]`;
+    if (d) {
+      const entropy = d.entropy != null ? `H: ${d.entropy.toFixed(2)}` : null;
+      const margin = d.top2_margin != null ? `M: ${d.top2_margin.toFixed(2)}` : null;
+      const cache = d.metadata?.cache_hit ? "⚡ Cache HIT" : (d.metadata?.cache_hit === false ? "Cache MISS" : null);
+      const passes = d.metadata?.passes_executed != null ? `${d.metadata.passes_executed}p` : null;
+      const parts = [info, entropy, margin, passes, cache].filter(Boolean);
+      info = parts.join(" · ");
+    }
+    $("telemetry").textContent = info;
+  }
+  if ($("backend") && !busy && state.backend) {
+    $("backend").value = state.backend;
+  }
   if (!page) {
     controls();
     return;
@@ -150,7 +167,11 @@ $("task-form").addEventListener("submit", (event) => {
   automatic = false;
   perform(
     () =>
-      call("reset", { scenario: $("scenario").value, goal: $("goal").value }),
+      call("reset", {
+        scenario: $("scenario").value,
+        goal: $("goal").value,
+        backend: $("backend")?.value || "mlx_direct",
+      }),
     "Opening a fresh browser…",
   );
 });

@@ -1,0 +1,133 @@
+{
+  "step1": {
+    "choice": "e11",
+    "operation": "CLICK",
+    "target": "8",
+    "confidence": 0.7318820357322693,
+    "probabilities": {
+      "e1": 0.0090236971154809,
+      "e2": 0.04696432873606682,
+      "e3": 0.0006973115378059447,
+      "e5": 0.002408779924735427,
+      "e6": 0.004000500310212374,
+      "e10": 0.00556557672098279,
+      "e11": 0.7318820357322693,
+      "e12": 0.01557211298495531,
+      "e13": 0.004347342066466808,
+      "e4": 0.01557211298495531,
+      "e7": 0.06211068108677864,
+      "e8": 0.0006363244028761983,
+      "e9": 0.00769346347078681,
+      "scroll_down": 0.0031098404433578253,
+      "wait": 0.019557418301701546,
+      "DONE": 0.05405086651444435,
+      "BLOCKED": 0.016807660460472107
+    },
+    "latency_ms": 12607,
+    "model": "mlx-community/diffusiongemma-26B-A4B-it-4bit",
+    "usage": {},
+    "action_id": "e11",
+    "raw_top_probability": 0.7318820357322693,
+    "entropy": 1.1744178739143631,
+    "top2_margin": 0.6697713546454906,
+    "stable_steps": 1,
+    "tokenize_ms": 1.7607079935260117,
+    "prefill_ms": 12337.237416999415,
+    "decoder_ms": 232.4840000073891,
+    "total_model_ms": 12569.721417006804,
+    "total_decision_ms": 12606.50416702265,
+    "backend": "mlx_direct",
+    "metadata": {
+      "canvas_length": 32,
+      "action_slot": 2,
+      "passes_configured": 2,
+      "passes_executed": 2,
+      "self_conditioning": true,
+      "compiled": false,
+      "seed": null,
+      "label_strategy": "index",
+      "cache_hit": false,
+      "trajectory": [
+        {
+          "pass": 1,
+          "top_action": "DONE",
+          "top_candidate": "A15",
+          "probability": 0.3572,
+          "entropy": 2.0116,
+          "margin": 0.2293
+        },
+        {
+          "pass": 2,
+          "top_action": "e11",
+          "top_candidate": "A6",
+          "probability": 0.7319,
+          "entropy": 1.1744,
+          "margin": 0.6698
+        }
+      ],
+      "candidate_count": 17,
+      "prompt_tokens": 481
+    }
+  },
+  "step2": {
+    "choice": "DONE",
+    "operation": "DONE",
+    "target": null,
+    "confidence": 0.3628104329109192,
+    "probabilities": {
+      "e1": 0.05324026942253113,
+      "e2": 0.21734927594661713,
+      "e3": 0.027331357821822166,
+      "e4": 0.01493298914283514,
+      "wait": 0.03236689791083336,
+      "DONE": 0.3628104329109192,
+      "BLOCKED": 0.29196876287460327
+    },
+    "latency_ms": 562,
+    "model": "mlx-community/diffusiongemma-26B-A4B-it-4bit",
+    "usage": {},
+    "action_id": "DONE",
+    "raw_top_probability": 0.3628104329109192,
+    "entropy": 1.4873741214836151,
+    "top2_margin": 0.07084167003631592,
+    "stable_steps": 1,
+    "tokenize_ms": 0.46104201464913785,
+    "prefill_ms": 332.12591701885685,
+    "decoder_ms": 219.3590409879107,
+    "total_model_ms": 551.4849580067676,
+    "total_decision_ms": 562.3229170159902,
+    "backend": "mlx_direct",
+    "metadata": {
+      "canvas_length": 32,
+      "action_slot": 2,
+      "passes_configured": 2,
+      "passes_executed": 2,
+      "self_conditioning": true,
+      "compiled": false,
+      "seed": null,
+      "label_strategy": "index",
+      "cache_hit": false,
+      "trajectory": [
+        {
+          "pass": 1,
+          "top_action": "e2",
+          "top_candidate": "A1",
+          "probability": 0.4976,
+          "entropy": 1.209,
+          "margin": 0.1697
+        },
+        {
+          "pass": 2,
+          "top_action": "DONE",
+          "top_candidate": "A5",
+          "probability": 0.3628,
+          "entropy": 1.4874,
+          "margin": 0.0708
+        }
+      ],
+      "candidate_count": 7,
+      "prompt_tokens": 283
+    }
+  },
+  "page_elements": 10
+}

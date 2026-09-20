@@ -1,0 +1,48 @@
+{
+  "checkpoints": [
+    {
+      "step": 1,
+      "memory": {
+        "active_gb": 15.41,
+        "peak_gb": 15.591,
+        "cache_gb": 0.282,
+        "process_rss_mb": 8496.59
+      },
+      "recent_p50_latency_ms": 16968.9,
+      "all_p50_latency_ms": 16968.9
+    },
+    {
+      "step": 10,
+      "memory": {
+        "active_gb": 15.41,
+        "peak_gb": 15.594,
+        "cache_gb": 1.014,
+        "process_rss_mb": 8496.59
+      },
+      "recent_p50_latency_ms": 416.2,
+      "all_p50_latency_ms": 416.2
+    },
+    {
+      "step": 25,
+      "memory": {
+        "active_gb": 15.41,
+        "peak_gb": 15.594,
+        "cache_gb": 1.391,
+        "process_rss_mb": 8496.59
+      },
+      "recent_p50_latency_ms": 408.7,
+      "all_p50_latency_ms": 408.7
+    },
+    {
+      "step": 50,
+      "memory": {
+        "active_gb": 15.41,
+        "peak_gb": 16.477,
+        "cache_gb": 1.446,
+        "process_rss_mb": 8496.59
+      },
+      "recent_p50_latency_ms": 408.8,
+      "all_p50_latency_ms": 408.8
+    }
+  ]
+}

@@ -29,11 +29,17 @@
       </section>
       <form id="task-form">
         <div class="task-label">
-          <label for="goal">Give it a task</label
-          ><select id="scenario" name="scenario" aria-label="Demo scenario">
+          <select id="scenario" name="scenario" aria-label="Demo scenario">
             <option value="flights">Google Flights · real web</option>
             <option value="travel">Travel planner · fixture</option>
             <option value="research">Reading room · fixture</option>
+          </select>
+          <select id="backend" name="backend" aria-label="Decision model backend">
+            <option value="mlx_direct">Local DiffusionGemma (Apple Silicon Metal)</option>
+            <option value="torch_direct">Local DiffusionGemma (NVIDIA DGX / AMD Strix Halo)</option>
+            <option value="hybrid">Hybrid (Local + Cloud Jev)</option>
+            <option value="jev">Cloud Jev (Speculative)</option>
+            <option value="mlx_generate">Local DiffusionGemma (Generate)</option>
           </select>
         </div>
         <div class="task-row">
@@ -46,8 +52,8 @@ Find one-way flights from Zurich to London on September 20, 2026, for one adult 
       </form>
       <div class="toolbar">
         <div class="status">
-          <span class="dot" id="status-dot"></span
-          ><span id="status" role="status">Ready to explore</span>
+          <span class="dot" id="status-dot"></span><span id="status" role="status">Ready to explore</span>
+          <div class="telemetry" id="telemetry" style="font-size: 11px; opacity: 0.85; margin-left: 12px; display: inline-flex; gap: 8px;"></div>
         </div>
         <div class="controls"><label class="overlay-control"><input name="pace" id="pace" type="checkbox"> Slow motion</label>
           <label class="overlay-control"

@@ -1,0 +1,160 @@
+{
+  "checkpoint_1_passes": [
+    {
+      "passes": 1,
+      "accuracy": 0.1667,
+      "operation_accuracy": 0.5,
+      "p50_total_ms": 303.38,
+      "p50_prefill_ms": 186.51,
+      "p50_decoder_ms": 110.15,
+      "entropy": 0.4399,
+      "margin": 0.8192
+    },
+    {
+      "passes": 2,
+      "accuracy": 0.2667,
+      "operation_accuracy": 0.5,
+      "p50_total_ms": 411.76,
+      "p50_prefill_ms": 184.48,
+      "p50_decoder_ms": 221.37,
+      "entropy": 0.8462,
+      "margin": 0.4776
+    },
+    {
+      "passes": 4,
+      "accuracy": 0.2333,
+      "operation_accuracy": 0.5,
+      "p50_total_ms": 631.09,
+      "p50_prefill_ms": 183.55,
+      "p50_decoder_ms": 441.08,
+      "entropy": 0.8735,
+      "margin": 0.4294
+    },
+    {
+      "passes": 8,
+      "accuracy": 0.2,
+      "operation_accuracy": 0.4667,
+      "p50_total_ms": 1076.11,
+      "p50_prefill_ms": 185.13,
+      "p50_decoder_ms": 883.02,
+      "entropy": 0.8605,
+      "margin": 0.437
+    }
+  ],
+  "canvas_sweep": [
+    {
+      "canvas": 8,
+      "accuracy": 0.3333,
+      "p50_total_ms": 278.82,
+      "p50_decoder_ms": 88.92
+    },
+    {
+      "canvas": 16,
+      "accuracy": 0.3333,
+      "p50_total_ms": 332.78,
+      "p50_decoder_ms": 144.47
+    },
+    {
+      "canvas": 32,
+      "accuracy": 0.2333,
+      "p50_total_ms": 411.84,
+      "p50_decoder_ms": 220.35
+    },
+    {
+      "canvas": 64,
+      "accuracy": 0.6,
+      "p50_total_ms": 395.77,
+      "p50_decoder_ms": 206.15
+    },
+    {
+      "canvas": 128,
+      "accuracy": 0.4667,
+      "p50_total_ms": 439.86,
+      "p50_decoder_ms": 246.71
+    },
+    {
+      "canvas": 256,
+      "accuracy": 0.3333,
+      "p50_total_ms": 557.16,
+      "p50_decoder_ms": 350.6
+    }
+  ],
+  "slot_ablation": [
+    {
+      "slot_name": "early",
+      "slot_idx": 0,
+      "accuracy": 0.2333,
+      "p50_ms": 412.96
+    },
+    {
+      "slot_name": "middle",
+      "slot_idx": 16,
+      "accuracy": 0.5667,
+      "p50_ms": 411.46
+    },
+    {
+      "slot_name": "late",
+      "slot_idx": 28,
+      "accuracy": 0.4333,
+      "p50_ms": 419.54
+    }
+  ],
+  "self_conditioning_ablation": [
+    {
+      "passes": 2,
+      "self_conditioning": true,
+      "accuracy": 0.2333,
+      "p50_ms": 411.32
+    },
+    {
+      "passes": 2,
+      "self_conditioning": false,
+      "accuracy": 0.2667,
+      "p50_ms": 411.81
+    },
+    {
+      "passes": 4,
+      "self_conditioning": true,
+      "accuracy": 0.1667,
+      "p50_ms": 631.65
+    },
+    {
+      "passes": 4,
+      "self_conditioning": false,
+      "accuracy": 0.2333,
+      "p50_ms": 634.41
+    }
+  ],
+  "seed_stability": [
+    {
+      "seed": 1,
+      "accuracy": 0.2667,
+      "entropy": 0.8247
+    },
+    {
+      "seed": 2,
+      "accuracy": 0.2333,
+      "entropy": 0.8832
+    },
+    {
+      "seed": 3,
+      "accuracy": 0.2,
+      "entropy": 0.8275
+    },
+    {
+      "seed": 4,
+      "accuracy": 0.3333,
+      "entropy": 0.8747
+    }
+  ],
+  "autoregressive_control": {
+    "accuracy": 0.0,
+    "p50_total_ms": 88.47,
+    "invalid_rate": 0.7667
+  },
+  "diffusion_generate_baseline": {
+    "accuracy": 0.88,
+    "p50_total_ms": 435.08,
+    "invalid_rate": 0.0
+  }
+}
