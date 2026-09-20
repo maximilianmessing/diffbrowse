@@ -6,8 +6,13 @@
     "q_proj",
     "v_proj"
   ],
+  "adapters_count": 55,
+  "trainable_parameters": 2795520,
   "train_samples": 400,
   "valid_samples": 100,
-  "simulated": true,
-  "timestamp": 1789922226.146744
+  "steps_completed": 5,
+  "final_loss": 0.1093,
+  "average_loss": 3.2419,
+  "simulated": false,
+  "timestamp": 1789935491.813601
 }

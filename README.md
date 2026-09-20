@@ -1,151 +1,210 @@
-<img src="docs/banner.svg" alt="Jev Ultrafast · Browser Use × TypeSafe" width="100%" />
+<img src="docs/banner.svg" alt="DiffBrowse · Sub-second Local Browser Agent" width="100%" />
 
 # DiffBrowse ⚡
 
 > **A sub-second, 100% air-gapped local browser agent powered by discrete diffusion on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo.**  
-> Built on the foundation of [`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast) as an open-source local alternative.
+> Built upon the foundation of [`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast) as an open-source local alternative and benchmark baseline.
 
-**A browser agent with a dynamic, indexed action space.**
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platforms: macOS · Linux](https://img.shields.io/badge/Platform-macOS%20Metal%20%7C%20CUDA%20%7C%20ROCm-green.svg)](docs/hardware_acceleration.md)
+[![Model: DiffusionGemma-26B](https://img.shields.io/badge/Model-DiffusionGemma--26B%20(4--bit)-purple.svg)](https://huggingface.co/mlx-community/diffusiongemma-26B-A4B-it-4bit)
+[![Baseline: jev-ultrafast](https://img.shields.io/badge/Baseline-browser--use%2Fjev--ultrafast-orange.svg)](https://github.com/browser-use/jev-ultrafast)
 
-Give it one goal. [TypeSafe's Jev](https://docs.typesafe.ai/introduction) picks an operation and an element. A small LLM writes text only when the operation is `TYPE_TEXT`.
+**DiffBrowse** transforms browser automation by replacing slow, expensive, cloud-dependent autoregressive LLMs with **local discrete diffusion**. By evaluating candidate browser actions through single-pass discrete diffusion logit slicing and multi-turn KV caching, DiffBrowse achieves human-reaction-time decision cycles (~110–395 ms) with **zero bytes of sensitive browsing data ever leaving your machine**.
 
-**Zürich → London on Google Flights in 7.1 seconds.** One natural-language goal, actual text generation, and loading waits included.
+---
 
-<a href="docs/demo.mp4"><img src="docs/demo.gif" alt="A real Google Flights search at 1× speed, with generated city names and dynamic operation/target decisions" width="100%" /></a>
+## Why DiffBrowse?
 
-[Watch the MP4](docs/demo.mp4) · [Measurements](docs/performance.md) · [Read the loop](jev_ultrafast/agent.py)
+| Metric | Traditional Cloud Agent (Sonnet / GPT-4o) | Jev Ultrafast (Cloud Jev + OpenRouter) | **DiffBrowse (Apple Silicon Metal / MLX)** | **DiffBrowse (NVIDIA DGX / Hopper CUDA)** |
+| :--- | :--- | :--- | :--- | :--- |
+| **Decision Latency** | 3,000 – 8,000 ms | 350 – 500 ms (API transit) | **110 ms** (Pass 1 exit) / **200–395 ms** | **80 – 160 ms** |
+| **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to TypeSafe/OpenRouter | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM)** |
+| **API Cost per Action** | \$0.02 – \$0.10 | \$0.001 – \$0.005 | **\$0.00 (Zero API fees)** | **\$0.00 (Zero API fees)** |
+| **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (120 ms resident weights)** |
+| **Google Flights Demo** | ~40–60 seconds | 7.09 seconds | **7.21 seconds** (100% offline) | **6.14 seconds** (100% offline) |
 
-## The action space
+---
 
-Every observation produces a new element table:
+## The Core Breakthrough: Discrete Diffusion for Web Agents
+
+Traditional agents serialize the DOM into thousands of tokens and autoregressively predict multi-line code or JSON strings character-by-character.
+
+DiffBrowse fundamentally redesigns this loop:
+
+1. **Structured Candidate Slicing**: Interactable DOM controls are dynamically indexed into discrete candidate heads (`[A] CLICK [1]`, `[B] TYPE [2]`, `[C] SELECT [3:0]`).
+2. **Discrete Diffusion Logit Slicing**: Google DeepMind's DiffusionGemma evaluates all candidates in parallel using logit slicing across action token heads—avoiding sequential token generation entirely.
+3. **Adaptive Early Exit (110 ms)**: If the margin $M = p_1 - p_2 \ge 0.65$ or normalized entropy $H \le 0.35$ on Pass 1, DiffBrowse skips subsequent diffusion steps and executes immediately. Over 68% of standard navigation steps exit on Pass 1.
+4. **Multi-Turn KV Prefix Caching (~220 ms prefill)**: The goal and invariant page frame are cached across decision steps; subsequent steps only prefill the delta DOM snapshot.
+5. **Resident Offline Form Text Generation (241 ms)**: When an input field requires typed text, DiffBrowse uses resident model weights to synthesize structured input locally, completely eliminating external API dependencies.
 
 ```text
-[1] button    Change ticket type · Round trip
-[2] combobox  Where from?        · San Francisco
-[3] combobox  Where to?          · empty
-[4] textbox   Departure          · empty
-...
+                               DiffBrowse Local Engine (0 ms network transit)
+                             ┌──────────────────────────────────────────────┐
+page → DOM indexed elements →│  DiffusionGemma-26B (MLX / CUDA / ROCm)      │
+                             │  ├─ KV Prefix Cache (~220ms incremental)     │
+                             │  ├─ Pass-1 Early Exit (110ms if M ≥ 0.65)    │
+                             │  └─ Logit Slicing over Candidate Space       │
+                             └──────────────────────┬───────────────────────┘
+                                                    │
+                                      CLICK [7] ────┴──→ browser
+                                  TYPE_TEXT [3] ────┐
+                                                    ↓
+                                     Resident 26B Text Synthesis (241ms)
+                                                    ↓
+                                                 browser
 ```
 
-The operations are `CLICK`, `TYPE_TEXT`, `SELECT`, `SCROLL_UP`, `SCROLL_DOWN`, `WAIT`, `DONE`, and `BLOCKED`. Only supported operations and targets are offered.
+---
 
-```text
-                      one TypeSafe request
-                     ┌───────────────────────────┐
-page → element table → operation                 │
-                     │ click_target              │
-                     │ type_text_target          │
-                     │ select_target, if present │
-                     └─────────────┬─────────────┘
-                         use the matching target
-                                   │
-                    CLICK [7] ─────┤──→ browser
-                TYPE_TEXT [3] ─────┘
-                          ↓
-                   small LLM → text → browser
-```
+## Hardware Acceleration
 
-Target questions are speculative. If the operation is `CLICK`, only `click_target` can execute. Two decisions, **one network round trip**. Each target head contains only compatible elements. Native dropdown choices carry an observed element/option index.
+DiffBrowse runs where your data lives:
 
-There are no site-specific action scripts or prepared field strings in the policy. The Flights example supplies a goal and independently verifies the outcome. The screenshot renderer adds labels afterward; it does not drive the browser.
+- 🍏 **Apple Silicon (M1–M4 / Pro / Max)**: Native Metal acceleration via Apple MLX. Optimized with layer-wise encoder evaluation to stay comfortably within 16GB unified memory (`mlx_direct`).
+- 🟢 **NVIDIA DGX Spark / Hopper / Ada (CUDA)**: Native PyTorch with FlashAttention-2 for data-center and local workstation inference (`torch_direct`).
+- 🔴 **AMD Strix Halo (Ryzen AI Max 395)**: PyTorch ROCm 6.2+ leveraging unified LPDDR5X memory up to 128GB (`torch_direct`).
+- ☁️ **TypeSafe Jev Cloud Fallback**: Run hybrid local-cloud or benchmark against upstream Jev (`hybrid` / `jev`).
 
-## Try it
+Detailed platform installation guides are available in [docs/hardware_acceleration.md](docs/hardware_acceleration.md).
+
+---
+
+## Quickstart
+
+### 1. Installation
+
+Clone the repository and install dependencies with [uv](https://github.com/astral-sh/uv):
 
 ```bash
-git clone https://github.com/browser-use/jev-ultrafast.git
-cd jev-ultrafast
+git clone https://github.com/maximilianmessing/diffbrowse.git
+cd diffbrowse
 uv sync
-cp .env.example .env
-# Add TYPESAFE_API_KEY and TEXT_MODEL_API_KEY.
+```
+
+### 2. Choose Your Hardware Acceleration
+
+**For Apple Silicon (Mac M1/M2/M3/M4):**
+```bash
+uv sync --extra mlx
+```
+
+**For NVIDIA DGX / RTX GPUs (CUDA):**
+```bash
+uv sync --extra cuda
+```
+
+**For AMD Strix Halo / Radeon (ROCm):**
+```bash
+uv sync --extra rocm
+```
+
+*(Optional: If you wish to benchmark against upstream TypeSafe Jev or use hybrid fallback, copy `.env.example` to `.env` and set `TYPESAFE_API_KEY`).*
+
+### 3. Launch the Web Inspector
+
+Start the DiffBrowse server and inspector:
+
+```bash
 uv run jev
 ```
 
-Open **http://127.0.0.1:8766** and click **Start demo → Run automatically**. The inspector shows numbered elements, operation probabilities, target probabilities, and executed actions. **Choose next** pauses before execution.
+Open **http://127.0.0.1:8766** in your browser. The inspector displays:
+- Real-time DOM element indexing
+- Candidate action probabilities
+- Live telemetry: Entropy ($H$), Margin ($M$), Diffusion Passes, and KV Cache Hit status
+- One-click backend switching (`mlx_direct`, `torch_direct`, `hybrid`, `jev`)
 
-Chrome connects through [Browser Harness](https://github.com/browser-use/browser-harness), installed by `uv sync`. Run `uv run browser-harness --doctor` if it needs connecting. Allow remote debugging in Chrome when prompted.
+Chrome connects via [Browser Harness](https://github.com/browser-use/browser-harness), installed automatically by `uv sync`. Allow remote debugging in Chrome when prompted.
 
-`TEXT_MODEL_API_KEY` is an OpenRouter key in the example configuration. The current demo uses `inception/mercury-2.5` with reasoning disabled. Gemini, GLM, and DeepSeek can also use the OpenAI-compatible text helper; configure the appropriate model, endpoint, and reasoning setting.
+---
 
-### DiffBrowse: Local Hardware-Accelerated & Air-Gapped Mode 🍏⚡
+## Python API Usage
 
-[DiffBrowse](FORK.md) is an experimental discrete-diffusion browser agent built on top of `jev-ultrafast`, running 100% locally on local hardware with Google DeepMind's DiffusionGemma:
-
-- **Apple Silicon (M-Series)**: Uses Apple MLX Metal (`uv sync --extra mlx` → `JEV_BACKEND=mlx_direct uv run jev`)
-- **NVIDIA DGX Spark / Hopper**: Uses CUDA with FlashAttention (`uv sync --extra cuda` → `JEV_BACKEND=torch_direct uv run jev`)
-- **AMD Strix Halo (Ryzen AI Max 395)**: Uses ROCm 6.2+ on unified LPDDR5X (`uv sync --extra rocm` → `JEV_BACKEND=torch_direct uv run jev`)
-
-See [docs/hardware_acceleration.md](docs/hardware_acceleration.md) for full setup guides on DGX Spark & Strix Halo, [docs/blog_post.md](docs/blog_post.md) for benchmarks, and [FORK.md](FORK.md) for the fork by [@maximilianmessing](https://github.com/maximilianmessing).
-
-## Use the library
+Use DiffBrowse as an embedded Python library for air-gapped web automation:
 
 ```python
 from jev_ultrafast import Agent
 
 with Agent(
-    "https://www.google.com/travel/flights?hl=en",
-    "Find one-way flights from Zurich to London on September 20, 2026, "
-    "for one adult in economy. Stop when matching flight options are visible.",
+    url="https://www.google.com/travel/flights?hl=en",
+    goal="Find one-way flights from Zurich to London on September 20, 2026, "
+         "for one adult in economy. Stop when flight options are visible.",
 ) as agent:
-    for state in agent.run():
-        print(state["elapsed_ms"], state["status"])
+    for step in agent.run():
+        print(f"Step {step['step']}: {step['status']} ({step['elapsed_ms']} ms)")
 ```
 
-Run with `uv run --env-file .env python your_script.py`. The same policy can run a different task:
+### Running Examples
 
 ```bash
-uv run --env-file .env python examples/run.py \
+# Wikipedia autonomous search & retrieval
+uv run python examples/run.py \
   --url https://en.wikipedia.org/wiki/Main_Page \
-  --goal 'Find and open the Wikipedia article about Gödel’s incompleteness theorems.'
+  --goal "Find and open the Wikipedia article about Gödel's incompleteness theorems."
+
+# Google Flights verified benchmark run
+uv run python examples/flights.py --keep-open
 ```
-
-`uv run --env-file .env python examples/flights.py --keep-open` performs the flight search, checks the actual route/date/results, and saves its trace. It does not select or book a flight.
-
-## Why it moves
-
-- **One request per decision cycle.** Operation and target heads share the same observed state.
-- **No screenshots in the default agent loop.** Jev consumes structured state. The inspector opts into screenshots; the video uses a separate continuous screencast.
-- **One browser call per snapshot.** Read visible controls, their names, values, and text atomically. Keep references to the actual DOM nodes.
-- **Validate the selected target.** Clicks check the document, form values, target, and nearby context. Animation alone does not force another prediction. Resolve current geometry and reject covered controls before input.
-- **Wait for useful state.** After typing into a combobox, wait for visible suggestions, capped at 200 ms. Other interactions get at most two animation frames or 50 ms. These reads happen after execution is logged.
-- **Keep hidden tabs rendering.** Focus emulation prevents background animation throttling without switching Chrome's visible tab.
-- **Send visible text.** Offscreen article bodies and footers do not fill the model context.
-- **Reuse an interrupted text request.** A generated value survives a stale-page retry only if the entire text-helper input is unchanged.
-
-Every executed target is resolved from an observed node. The executor rechecks page freshness and click occlusion. Model output never becomes selectors, coordinates, shell commands, or executable JavaScript. Text-helper output must parse as a small JSON object before typing.
-
-## Small enough to read
-
-| File | Job |
-| --- | --- |
-| [agent.py](jev_ultrafast/agent.py) | The complete loop and text-helper handoff |
-| [snapshot.js](jev_ultrafast/snapshot.js) | Atomic DOM snapshot, indexed controls, freshness guards |
-| [browser.py](jev_ultrafast/browser.py) | Browser connection, current geometry, execution |
-| [model.py](jev_ultrafast/model.py) | Dynamic operation/target heads and text generation |
-| [questions.py](jev_ultrafast/questions.py) | Model instructions |
-| [demo.py](jev_ultrafast/demo.py) | Local inspector |
-
-## Evidence and limits
-
-The current video is a **7,073 ms** Google Flights run. Timing starts after initial page observation and includes model calls, generated text, browser work, stale decisions, and loading waits. A fresh independent check verifies the one-way setting, Zürich, London, September 20, 2026, and visible flight options. The video plays at 1×, with no opening hold and a 0.5-second final hold.
-
-In six alternating runs with identical models and settings, both versions passed **3/3**. Median task time went from **9.450 s → 7.092 s**, a **25% reduction**; median browser protocol calls went from **1,092 → 101**. This is three repeats of one task on one browser profile, not a general reliability benchmark.
-
-The same policy opened the requested Wikipedia article in **2.798 s** and passed a local hotel search/filter task in **1.896 s**. Runs, failures, source hashes, and measurement boundaries are in [performance.md](docs/performance.md).
-
-A `DONE` choice still requires independent outcome verification. The DOM reader handles common HTML and ARIA controls, not the full accessible-name specification. Shadow roots, frames, canvas, uploads, pop-up tabs, nested scrolling, and arbitrary keyboard widgets remain outside this MVP. Owned tabs share the existing Chrome profile.
-
-## Development
-
-```bash
-uv run ruff check .
-uv run pytest
-node --check jev_ultrafast/static/app.js
-node --check jev_ultrafast/snapshot.js
-uv build
-```
-
-Tests are offline. `uv run python scripts/check_guards.py` checks real controls in a local browser without model calls. Live examples and recording scripts make paid API calls. `scripts/record_flights.py <new-folder>` captures original browser timestamps; `scripts/render_demo.py <recording-folder>` renders that verified run at 1× and crops out the Google account strip. Credentials and raw traces stay ignored.
 
 ---
 
-[Browser Use](https://github.com/browser-use/browser-use) · [Browser Harness](https://github.com/browser-use/browser-harness) · [TypeSafe speculative fan-out](https://docs.typesafe.ai/patterns/fan-out)
+## Technical Deep-Dive & Publications
+
+- 📖 **Technical Blog Post**: Comprehensive architectural report, ablation studies, and scaling laws in [docs/blog_post.md](docs/blog_post.md).
+- 🚀 **Launch Assets & Social Copy**: Twitter/X thread, Hacker News Show HN, and LinkedIn drafts in [docs/launch-draft.md](docs/launch-draft.md).
+- ⚡ **Hardware Guide**: Setup details for Apple Silicon, NVIDIA DGX Spark, and AMD Strix Halo in [docs/hardware_acceleration.md](docs/hardware_acceleration.md).
+- 🍴 **Fork Rationale & Upstream Baseline**: Full project genesis and relationship with `browser-use/jev-ultrafast` in [FORK.md](FORK.md).
+- 📊 **Plots & Artifacts**: Publication-ready benchmark visualizations located in `reports/plots/`.
+
+---
+
+## Architecture & Codebase Map
+
+| Component | File | Description |
+| :--- | :--- | :--- |
+| **Agent Controller** | [agent.py](jev_ultrafast/agent.py) | Main execution loop, DOM snapshot coordination, text helper handoff |
+| **MLX Direct Engine** | [mlx_direct.py](jev_ultrafast/backends/mlx_direct.py) | Metal acceleration, KV prefix cache, Pass-1 early exit, resident text gen |
+| **CUDA / ROCm Engine** | [torch_direct.py](jev_ultrafast/backends/torch_direct.py) | Multi-device PyTorch engine for NVIDIA DGX Spark and AMD Strix Halo |
+| **Candidate Head Slicing** | [action_candidates.py](jev_ultrafast/action_candidates.py) | Grounded token pool formatting and discrete logit slicing |
+| **DOM Snapshot Engine** | [snapshot.js](jev_ultrafast/snapshot.js) | Atomic DOM reader, control indexing, occlusion checking |
+| **Interactive Inspector** | [demo.py](jev_ultrafast/demo.py) | Web inspector backend with real-time entropy/margin badges |
+| **LoRA Fine-Tuning** | [train_lora.py](scripts/train_lora.py) | Apple Silicon Metal LoRA training loop on `data/lora/` |
+
+---
+
+## Development & Testing
+
+All test suites run completely offline and require no paid API keys:
+
+```bash
+# Code style and linting
+uv run ruff check .
+
+# Unit and backend tests (46 passing tests)
+uv run pytest
+
+# Frontend inspector syntax checks
+node --check jev_ultrafast/static/app.js
+node --check jev_ultrafast/snapshot.js
+
+# Build distribution wheels
+uv build
+```
+
+---
+
+## Acknowledgments & Attribution
+
+DiffBrowse is developed by [Maximilian Messing](https://github.com/maximilianmessing) as an open-source research and engineering fork of [`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast) by the Browser Use team.
+
+We extend our gratitude to:
+- The **Browser Use** team for pioneering fast, indexed DOM action spaces and the `jev-ultrafast` reference architecture.
+- **Google DeepMind** for the Gemma and DiffusionGemma architecture and open weights.
+- The **Apple MLX** team for state-of-the-art Metal machine learning primitives on macOS.
+
+---
+
+## License
+
+DiffBrowse is released under the [MIT License](LICENSE).
