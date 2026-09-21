@@ -2,8 +2,12 @@
 
 import hashlib
 import json
+import os
+import shutil
+import subprocess
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 from browser_harness.admin import ensure_daemon
@@ -13,12 +17,75 @@ from browser_harness.helpers import cdp
 READ_STATE = Path(__file__).with_name("snapshot.js").read_text()
 MARKER = f"(() => {{ const state={READ_STATE}; return state?.marker ?? null; }})()"
 
+
 class StalePage(ValueError):
     """A decision no longer refers to the observed page."""
 
 
+def _ensure_local_chrome_endpoint():
+    """Ensure an accessible local CDP endpoint is active, avoiding macOS TCC permission errors on default profile."""
+    if os.environ.get("BU_CDP_URL") or os.environ.get("BU_CDP_WS"):
+        return
+
+    port = int(os.environ.get("DIFFBROWSE_CHROME_PORT", "9223"))
+    url = f"http://127.0.0.1:{port}"
+    try:
+        urllib.request.urlopen(f"{url}/json/version", timeout=0.5)
+        os.environ["BU_CDP_URL"] = url
+        return
+    except Exception:
+        pass
+
+    chrome_bin = None
+    for candidate in [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        shutil.which("google-chrome"),
+        shutil.which("chromium"),
+        shutil.which("chrome"),
+    ]:
+        if candidate and Path(candidate).exists():
+            chrome_bin = str(candidate)
+            break
+
+    if not chrome_bin:
+        return
+
+    profile_dir = Path.home() / ".config" / "browser-harness" / "chrome-profile"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    headless = os.environ.get("DIFFBROWSE_HEADLESS", "1").lower() not in {"0", "false", "no"}
+    cmd = [
+        chrome_bin,
+        f"--remote-debugging-port={port}",
+        f"--user-data-dir={profile_dir}",
+        "--no-first-run",
+        "--no-default-browser-check",
+    ]
+    if headless:
+        cmd.append("--headless=new")
+    cmd.append("about:blank")
+
+    try:
+        subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        for _ in range(25):
+            time.sleep(0.1)
+            try:
+                urllib.request.urlopen(f"{url}/json/version", timeout=0.5)
+                os.environ["BU_CDP_URL"] = url
+                return
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 class Browser:
     def __init__(self, url):
+        _ensure_local_chrome_endpoint()
         ensure_daemon()
         self.target = cdp("Target.createTarget", url="about:blank", background=True)["targetId"]
         self.session = cdp("Target.attachToTarget", targetId=self.target, flatten=True)["sessionId"]
@@ -50,22 +117,41 @@ class Browser:
                     "Runtime.evaluate",
                     expression="""(action => new Promise(resolve => {
                       const field=window.__jevFast?.nodes.get(action.node);
-                      const autocomplete=action.kind==='fill' && field?.getAttribute('role')==='combobox';
+                      const isCombobox=action.kind==='fill' && field?.getAttribute('role')==='combobox';
+                      const isTrigger=action.kind==='click' && (
+                        field?.getAttribute('role')==='combobox'
+                        || field?.getAttribute('aria-haspopup')
+                        || field?.getAttribute('aria-expanded')
+                      );
                       let frames=0, stopped=false;
                       const finish=()=>{stopped=true;resolve()};
-                      setTimeout(finish,autocomplete ? 200 : 50);
+                      setTimeout(finish,isCombobox ? 600 : isTrigger ? 300 : 70);
                       const ready=()=>{
                         if (stopped) return;
-                        const ids=(field?.getAttribute('aria-controls')||field?.getAttribute('aria-owns')||'')
-                          .split(/\\s+/).filter(Boolean);
-                        const roots=ids.length ? ids.map(id=>document.getElementById(id)).filter(Boolean) : [document];
-                        const options=roots.flatMap(root=>[...root.querySelectorAll('[role="option"]')]);
-                        if (++frames>=2 && (!autocomplete || options.some(e=>{
-                          const r=e.getBoundingClientRect();
-                          return r.width && r.height && r.bottom>0 && r.top<innerHeight &&
-                            e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true});
-                        }))) finish();
-                        else requestAnimationFrame(ready);
+                        if (isCombobox) {
+                          const options=[...document.querySelectorAll('[role="option"], [role="menuitem"]')].filter(e=>{
+                            const r=e.getBoundingClientRect();
+                            return r.width>0 && r.height>0 && e.checkVisibility(
+                              {checkOpacity:true,checkVisibilityCSS:true}
+                            );
+                          });
+                          const relevant=options.filter(o=>!/round trip|one way|multi-city|economy/i.test(o.innerText));
+                          if (++frames>=2 && relevant.length>0) finish();
+                          else requestAnimationFrame(ready);
+                        } else if (isTrigger) {
+                          const sel='[role="option"], [role="menuitem"], [role="dialog"], [role="listbox"]';
+                          const options=[...document.querySelectorAll(sel)].filter(e=>{
+                            const r=e.getBoundingClientRect();
+                            return r.width>0 && r.height>0 && e.checkVisibility(
+                              {checkOpacity:true,checkVisibilityCSS:true}
+                            );
+                          });
+                          if (++frames>=2 && options.length>0) finish();
+                          else requestAnimationFrame(ready);
+                        } else {
+                          if (++frames>=2) finish();
+                          else requestAnimationFrame(ready);
+                        }
                       };
                       requestAnimationFrame(ready);
                     }))(""" + json.dumps(action) + ")",
@@ -146,6 +232,7 @@ def browser_operation(request):
               if (!e?.isConnected || e.matches(':disabled') || e.closest('[aria-disabled="true"],[inert]') ||
                   !e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})) return null;
               if (action.kind==='fill' && (e.readOnly || e.getAttribute('aria-readonly')==='true')) return null;
+              e.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'});
               const r=e.getBoundingClientRect(), x=r.x+r.width/2, y=r.y+r.height/2;
               if (!r.width || !r.height || x<0 || y<0 || x>=innerWidth || y>=innerHeight) return null;
               if (!e.contains(document.elementFromPoint(x,y))) return null;

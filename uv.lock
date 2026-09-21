@@ -488,6 +488,64 @@ wheels = [
 ]
 
 [[package]]
+name = "diffbrowse"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "browser-harness" },
+    { name = "httpx", extra = ["http2"] },
+]
+
+[package.optional-dependencies]
+cuda = [
+    { name = "accelerate" },
+    { name = "torch" },
+    { name = "transformers" },
+]
+mlx = [
+    { name = "mlx" },
+    { name = "mlx-lm" },
+    { name = "mlx-vlm" },
+]
+rocm = [
+    { name = "accelerate" },
+    { name = "torch" },
+    { name = "transformers" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "matplotlib" },
+    { name = "pillow" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "accelerate", marker = "extra == 'cuda'", specifier = ">=0.33.0" },
+    { name = "accelerate", marker = "extra == 'rocm'", specifier = ">=0.33.0" },
+    { name = "browser-harness", specifier = "==0.1.13" },
+    { name = "httpx", extras = ["http2"], specifier = ">=0.28,<1" },
+    { name = "mlx", marker = "extra == 'mlx'", specifier = ">=0.32.2" },
+    { name = "mlx-lm", marker = "extra == 'mlx'", specifier = ">=0.31.0" },
+    { name = "mlx-vlm", marker = "extra == 'mlx'", specifier = ">=0.7.1" },
+    { name = "torch", marker = "extra == 'cuda'", specifier = ">=2.4.0" },
+    { name = "torch", marker = "extra == 'rocm'", specifier = ">=2.4.0" },
+    { name = "transformers", marker = "extra == 'cuda'", specifier = ">=4.44.0" },
+    { name = "transformers", marker = "extra == 'rocm'", specifier = ">=4.44.0" },
+]
+provides-extras = ["mlx", "cuda", "rocm"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "matplotlib", specifier = ">=3.10" },
+    { name = "pillow", specifier = ">=11,<13" },
+    { name = "pytest", specifier = ">=8.4,<9" },
+    { name = "ruff", specifier = ">=0.14,<1" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
@@ -720,64 +778,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "jev-ultrafast"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "browser-harness" },
-    { name = "httpx", extra = ["http2"] },
-]
-
-[package.optional-dependencies]
-cuda = [
-    { name = "accelerate" },
-    { name = "torch" },
-    { name = "transformers" },
-]
-mlx = [
-    { name = "mlx" },
-    { name = "mlx-lm" },
-    { name = "mlx-vlm" },
-]
-rocm = [
-    { name = "accelerate" },
-    { name = "torch" },
-    { name = "transformers" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "matplotlib" },
-    { name = "pillow" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "accelerate", marker = "extra == 'cuda'", specifier = ">=0.33.0" },
-    { name = "accelerate", marker = "extra == 'rocm'", specifier = ">=0.33.0" },
-    { name = "browser-harness", specifier = "==0.1.13" },
-    { name = "httpx", extras = ["http2"], specifier = ">=0.28,<1" },
-    { name = "mlx", marker = "extra == 'mlx'", specifier = ">=0.32.2" },
-    { name = "mlx-lm", marker = "extra == 'mlx'", specifier = ">=0.31.0" },
-    { name = "mlx-vlm", marker = "extra == 'mlx'", specifier = ">=0.7.1" },
-    { name = "torch", marker = "extra == 'cuda'", specifier = ">=2.4.0" },
-    { name = "torch", marker = "extra == 'rocm'", specifier = ">=2.4.0" },
-    { name = "transformers", marker = "extra == 'cuda'", specifier = ">=4.44.0" },
-    { name = "transformers", marker = "extra == 'rocm'", specifier = ">=4.44.0" },
-]
-provides-extras = ["mlx", "cuda", "rocm"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "matplotlib", specifier = ">=3.10" },
-    { name = "pillow", specifier = ">=11,<13" },
-    { name = "pytest", specifier = ">=8.4,<9" },
-    { name = "ruff", specifier = ">=0.14,<1" },
 ]
 
 [[package]]

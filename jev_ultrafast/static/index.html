@@ -4,16 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="demo-token" content="__TOKEN__" />
-    <title>Jev Ultrafast · Browser Use</title>
+    <title>DiffBrowse · Local Browser Agent</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <header>
       <a href="/" aria-label="Homepage" class="brand"
-        >browser<span>use</span> <i>×</i> TypeSafe</a
+        >Diff<span>Browse</span> <i>·</i> Local Agent</a
       >
-      <div class="local"><span class="dot"></span> Jev Ultrafast</div>
+      <div class="local"><span class="dot"></span> DiffBrowse Engine</div>
     </header>
     <main>
       <section class="intro">
@@ -21,13 +21,12 @@
           <p class="eyebrow">A BROWSER THAT CHOOSES</p>
           <h1>Every page is a set of possibilities.</h1>
           <p>
-            Discrete diffusion picks the next action on local silicon or falls back to cloud Jev.
-            <a href="/diffbrowse-vs-jev.mp4" target="_blank" rel="noopener">⚔️ Side-by-side comparison ↗</a> ·
-            <a href="/diffbrowse-demo.mp4" target="_blank" rel="noopener">Local DiffBrowse run ↗</a> ·
-            <a href="/demo.mp4" target="_blank" rel="noopener">Upstream Jev run ↗</a>
+            Discrete diffusion evaluates candidate actions locally on Apple Silicon Metal with zero cloud egress.
+            <a href="/diffbrowse-demo.mp4" target="_blank" rel="noopener">Local travel fixture run ↗</a> ·
+            <a href="/diffbrowse-vs-jev.mp4" target="_blank" rel="noopener">Comparison video ↗</a>
           </p>
         </div>
-        <div class="model-tag">jev-latest <span>+ text helper</span></div>
+        <div class="model-tag">DiffusionGemma-26B <span>+ Metal</span></div>
       </section>
       <form id="task-form">
         <div class="task-label">
@@ -38,10 +37,10 @@
           </select>
           <select id="backend" name="backend" aria-label="Decision model backend">
             <option value="mlx_direct">Local DiffusionGemma (Apple Silicon Metal)</option>
-            <option value="torch_direct">Local DiffusionGemma (NVIDIA DGX / AMD Strix Halo)</option>
-            <option value="hybrid">Hybrid (Local + Cloud Jev)</option>
-            <option value="jev">Cloud Jev (Speculative)</option>
-            <option value="mlx_generate">Local DiffusionGemma (Generate)</option>
+            <option value="torch_direct">Experimental PyTorch (CUDA / ROCm)</option>
+            <option value="hybrid">Hybrid (Local + Cloud Jev Fallback)</option>
+            <option value="jev">Cloud Jev (Baseline)</option>
+            <option value="mlx_generate">Local DiffusionGemma (Generate Mode)</option>
           </select>
         </div>
         <div class="task-row">
@@ -143,8 +142,8 @@ Find one-way flights from Zurich to London on September 20, 2026, for one adult 
 Start a demo to inspect its structured state.</pre>
       </details>
       <footer>
-        <span>Browser Use × TypeSafe · Experimental baseline</span
-        ><span id="helper">Text helper loading</span>
+        <span>DiffBrowse · 100% Air-gapped local web agent</span>
+        <span id="helper">Resident offline text synthesis</span>
       </footer>
     </main>
     <script type="module" src="/app.js"></script>

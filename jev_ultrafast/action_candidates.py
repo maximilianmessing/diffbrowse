@@ -36,6 +36,7 @@ def flatten_actions(actions: List[Dict[str, Any]]) -> List[CandidateAction]:
     idx = 0
 
     # 1. Operation-specific target actions
+    raw_targets = []
     for op in ("CLICK", "TYPE_TEXT", "SELECT"):
         if op not in targets:
             continue
@@ -44,30 +45,54 @@ def flatten_actions(actions: List[Dict[str, Any]]) -> List[CandidateAction]:
             elem = elements[int(elem_idx) - 1] if elem_idx.isdigit() and int(elem_idx) <= len(elements) else {}
             role = elem.get("role", act.get("role", "element"))
             label_text = act.get("label", elem.get("label", ""))
-
-            if op == "CLICK":
-                desc = f"CLICK [{elem_idx}] {label_text} ({role})"
-            elif op == "TYPE_TEXT":
-                cur_val = act.get("current_value", act.get("value", ""))
-                val_str = f' [current: "{cur_val}"]' if cur_val else ""
-                desc = f"TYPE_TEXT [{elem_idx}] {label_text} ({role}){val_str}"
-            elif op == "SELECT":
-                desc = f"SELECT [{target_id}] {label_text}"
-            else:
-                desc = f"{op} [{target_id}] {label_text}"
-
-            candidates.append(
-                CandidateAction(
-                    index=idx,
-                    candidate_id=f"A{idx}",
-                    action_id=act["id"],
-                    operation=op,
-                    target=target_id,
-                    label=desc,
-                    raw_action=act,
-                )
+            is_option = role == "option"
+            is_selected = (
+                act.get("selected") == "true"
+                or elem.get("selected") == "true"
+                or act.get("checked") == "true"
             )
-            idx += 1
+            # Sort order:
+            # 0: Active unselected options (e.g. autocomplete suggestions, unselected radio/dropdown options)
+            # 1: TYPE_TEXT editable fields (form inputs)
+            # 2: Standard CLICK/SELECT actions
+            # 3: Already selected options
+            if is_option and not is_selected:
+                priority = 0
+            elif op == "TYPE_TEXT":
+                priority = 1
+            elif not is_selected:
+                priority = 2
+            else:
+                priority = 3
+            raw_targets.append((priority, op, target_id, act, elem_idx, role, label_text, is_selected))
+
+    raw_targets.sort(key=lambda x: x[0])
+
+    for _, op, target_id, act, elem_idx, role, label_text, is_selected in raw_targets:
+        if op == "CLICK":
+            sel_str = " [selected]" if is_selected else ""
+            desc = f"CLICK [{elem_idx}] {label_text} ({role}){sel_str}"
+        elif op == "TYPE_TEXT":
+            cur_val = act.get("current_value", act.get("value", ""))
+            val_str = f' [current: "{cur_val}"]' if cur_val else ""
+            desc = f"TYPE_TEXT [{elem_idx}] {label_text} ({role}){val_str}"
+        elif op == "SELECT":
+            desc = f"SELECT [{target_id}] {label_text}"
+        else:
+            desc = f"{op} [{target_id}] {label_text}"
+
+        candidates.append(
+            CandidateAction(
+                index=idx,
+                candidate_id=f"A{idx}",
+                action_id=act["id"],
+                operation=op,
+                target=target_id,
+                label=desc,
+                raw_action=act,
+            )
+        )
+        idx += 1
 
     # 2. Control actions (scroll, wait)
     for control_id, act in controls.items():

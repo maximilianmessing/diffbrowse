@@ -51,6 +51,8 @@ Software Runtime  : MLX 0.32.2 / mlx-vlm 0.7.1 / macOS Metal 4
 | **DiffusionGemma Direct (L=32, Slot 0)** | `MlxDiffusionDirectBackend` (Passes=1) | **16.7%** | 16.7% | **0.0%** | **110.2 ms** | 186.5 ms | **303.4 ms** | 15.59 GB |
 | **AR Control (Qwen2.5-0.5B)** | `MlxAutoregressiveBackend` | **0.0%** | 0.0% | **76.7%** | 38.2 ms | 48.3 ms | **88.5 ms** | 0.35 GB |
 
+> **Methodology Note**: Hyperparameter and architectural evaluations were conducted over $N=30$ structured offline scenario representations (`fixtures/recorded_decisions.jsonl`). Jev cloud baseline scores in the offline fixture set were synthetically generated to evaluate agreement classifiers; live zero-shot real-web evaluation is documented in `results/browser_benchmark.json`.
+
 ---
 
 ## 3. Detailed Experimental Sweeps & Milestone Data

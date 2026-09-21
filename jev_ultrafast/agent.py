@@ -19,8 +19,38 @@ class Agent:
         self.pending_text = None
 
         if backend is None:
-            backend_env = os.environ.get("JEV_BACKEND", "jev").lower()
-            if backend_env in ("mlx", "mlx_direct", "diffusiongemma"):
+            backend_env = os.environ.get("JEV_BACKEND", "").lower()
+            if not backend_env:
+                try:
+                    import mlx.core  # noqa: F401
+
+                    backend_env = "mlx_structured"
+                except ImportError:
+                    try:
+                        import torch
+
+                        if torch.cuda.is_available():
+                            backend_env = "torch_structured"
+                        else:
+                            backend_env = "jev"
+                    except ImportError:
+                        backend_env = "jev"
+        elif isinstance(backend, str):
+            backend_env = backend.lower()
+        else:
+            backend_env = None
+            self.backend = backend
+
+        if backend_env is not None:
+            if backend_env in ("mlx_structured", "structured"):
+                from .backends import MlxDiffusionStructuredBackend
+
+                self.backend = MlxDiffusionStructuredBackend()
+            elif backend_env in ("torch_structured", "torch", "cuda", "rocm"):
+                from .backends import TorchDiffusionStructuredBackend
+
+                self.backend = TorchDiffusionStructuredBackend()
+            elif backend_env in ("mlx", "mlx_direct", "diffusiongemma"):
                 from .backends import MlxDiffusionDirectBackend
 
                 self.backend = MlxDiffusionDirectBackend()
@@ -32,7 +62,7 @@ class Agent:
                 from .backends import HybridBackend
 
                 self.backend = HybridBackend()
-            elif backend_env in ("torch_direct", "cuda", "rocm", "torch"):
+            elif backend_env in ("torch_direct",):
                 from .backends import TorchDiffusionDirectBackend
 
                 self.backend = TorchDiffusionDirectBackend()
@@ -40,8 +70,6 @@ class Agent:
                 from .backends import JevBackend
 
                 self.backend = JevBackend()
-        else:
-            self.backend = backend
         self.browser = Browser(url)
         self.record_dir = Path(record_dir) if record_dir else None
         self.screenshots = screenshots or bool(record_dir)

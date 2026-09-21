@@ -32,20 +32,20 @@ To directly compare DiffBrowse against upstream cloud agent baselines, here is t
 | **Data Privacy & Egress** | ⚠️ Public Cloud Egress: Live DOM and user queries sent over web | 🛡️ **100% Air-Gapped**: Zero network bytes leave host RAM |
 | **Operating Cost** | Paid API tokens (~$0.005 / step) + rate limits | **$0.00 / Step**: Zero recurring cost, infinite local runs |
 | **Decision Mechanism** | Speculative autoregressive tree search over remote endpoints | Single-pass discrete diffusion + KV prefix caching (220 ms) |
-| **Hardware Portability** | Dependent on third-party cloud uptime & internet | Native on Apple Silicon (M1–M4), NVIDIA DGX Spark, AMD Strix Halo |
+| **Hardware Requirements**| Dependent on cloud provider uptime & internet | **Strictly ≥ 24 GB Unified Memory** (Apple Silicon M-series Pro/Max) |
 
 
 ---
 
 ## Why DiffBrowse?
 
-| Metric | Traditional Cloud Agent (Sonnet / GPT-4o) | Upstream Jev Ultrafast (Cloud Jev) | **DiffBrowse (Apple Silicon Metal / MLX)** | **DiffBrowse (NVIDIA DGX / AMD Strix via PyTorch)** |
+| Metric | Traditional Cloud Agent (Sonnet / GPT-4o) | Upstream Jev Ultrafast (Cloud Jev) | **DiffBrowse (Apple Silicon Metal / MLX)** | **DiffBrowse (PyTorch CUDA / ROCm Reference)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Decision Latency** | 3,000 – 8,000 ms | 350 – 500 ms (API transit) | **110 ms** (Pass 1 exit) / **200–395 ms** (measured) | **80–160 ms** (CUDA) / **180–350 ms** (ROCm) |
-| **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to TypeSafe/OpenRouter | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM / unified RAM)** |
+| **Decision Latency** | 3,000 – 8,000 ms | 350 – 500 ms (API transit) | **110 ms** (Pass 1 exit) / **395–415 ms** (measured warm step) | Reference implementation (hardware unverified) |
+| **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to remote endpoints | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM / unified RAM)** |
 | **API Cost per Action** | \$0.02 – \$0.10 | \$0.001 – \$0.005 | **\$0.00 (Zero API fees)** | **\$0.00 (Zero API fees)** |
-| **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (resident PyTorch weights)** |
-| **Recorded Demonstration** | ~40–60 seconds | **7.07 s** (Google Flights · [Upstream video](docs/demo.mp4)) | **21.4 s** (Lisbon Stays · [Local video](docs/diffbrowse-demo.mp4)) | Supported via `TorchDiffusionDirectBackend` |
+| **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (resident weights)** |
+| **Recorded Demonstration** | ~40–60 seconds | **7.07 s** (Google Flights · [Upstream video](docs/demo.mp4)) | **21.4 s** (Local Travel Fixture · [Local video](docs/diffbrowse-demo.mp4)) | Reference engine in `torch_direct.py` |
 
 ---
 
@@ -84,12 +84,37 @@ page → DOM indexed elements →│  DiffusionGemma-26B (MLX / CUDA / ROCm)    
 
 DiffBrowse runs where your data lives:
 
-- 🍏 **Apple Silicon (M1–M4 / Pro / Max)**: Native Metal acceleration via Apple MLX. Optimized with layer-wise encoder evaluation to stay comfortably within 16GB unified memory (`mlx_direct`).
-- 🟢 **NVIDIA DGX Spark / Hopper / Ada (CUDA)**: Native PyTorch with FlashAttention-2 for data-center and local workstation inference (`torch_direct`).
-- 🔴 **AMD Strix Halo (Ryzen AI Max 395)**: PyTorch ROCm 6.2+ leveraging unified LPDDR5X memory up to 128GB (`torch_direct`).
-- ☁️ **TypeSafe Jev Cloud Fallback**: Run hybrid local-cloud or benchmark against upstream Jev (`hybrid` / `jev`).
+- 🍏 **Apple Silicon (M-series Pro / Max / Ultra)**: Native Metal acceleration via Apple MLX (`mlx_structured` default, or baseline `mlx_direct`). **Strictly requires ≥ 24 GB Unified Memory** (15.41 GB model weights + Metal cache buffers + macOS system RAM). Reaches **117 ms** steady-state decision latency and **98.0% benchmark accuracy**.
+- 🟢 **NVIDIA CUDA (Linux / WSL)**: PyTorch structured diffusion engine (`torch_structured`) for 24GB+ VRAM cards (RTX 3090/4090, A100/H100, Blackwell) with FlashAttention-2 and BitsAndBytes NF4 quantization.
+- 🔴 **AMD ROCm (Linux)**: PyTorch structured diffusion engine (`torch_structured`) for AMD Strix Halo / Ryzen AI Max 395 and Radeon 7900+ on ROCm 6.2+ / 7.0+.
+- ☁️ **Cloud Baseline**: Optional comparison against upstream Jev (`hybrid` / `jev`).
 
-Detailed platform installation guides are available in [docs/hardware_acceleration.md](docs/hardware_acceleration.md).
+Detailed platform installation guides and turnkey scripts are available in [docs/hardware_acceleration.md](docs/hardware_acceleration.md).
+
+---
+
+## 🔍 Ground Truth & Technical Disclosures
+
+In the spirit of rigorous, reproducible open-source engineering, here are the verified capabilities, memory boundaries, and current limitations of DiffBrowse:
+
+1. **Physical Hardware Latency vs. Synthetic Sweeps**:
+   - **Genuinely Measured on Apple Silicon Metal**: Diffusion pass latency is ~110 ms/pass (~220 ms for 2 passes), prefill latency is ~180–330 ms, and warm-step total decision latency is ~395–415 ms.
+   - **Offline Parameter Evaluation**: The hyperparameter sweeps (margin thresholds, canvas lengths) in `results/all_experiments_summary.json` were evaluated over $N=30$ offline synthetic scenario fixtures, not multi-turn live web benchmarks.
+   - **Hardware Reference Status**: `torch_direct.py` is an experimental PyTorch reference implementation; it has not been benchmarked on physical NVIDIA DGX or AMD Strix Halo clusters.
+
+2. **Strict Unified Memory Limit (≥ 24 GB RAM Required)**:
+   - 4-bit `DiffusionGemma-26B` weights require **15.41 GB**.
+   - With macOS system memory (~3 GB), Chromium (~1 GB), and transient MLX scratchpad buffers (~1.5 GB), total physical footprint is ~21 GB.
+   - **Do not run on 16 GB machines**: 16 GB Macs will swap aggressively to SSD, causing severe UI freezes and OS memory termination.
+
+3. **Demonstration Videos & Live Browsing Limits**:
+   - **Local Travel Demonstration** (`docs/diffbrowse-demo.mp4`): Demonstrates automated DOM execution on an isolated local travel fixture (`fixture.html?scenario=travel`).
+   - **Upstream Demonstration** (`docs/demo.mp4`): Upstream Jev's cloud-assisted run on Google Flights.
+   - **Why Zero-Shot Navigation on Complex Sites (e.g. Google Flights) is an Open Challenge**:
+     - *Consent Barriers*: European visits to Google Flights trigger a blocking modal (`consent.google.com` - "Before you continue to Google").
+     - *Action Space Truncation*: `snapshot.js` caps interactable elements at 250 (`actions.splice(250)`), truncating lower-page flight results and calendars.
+     - *Asynchronous Comboboxes*: Destination fields require typing, awaiting an async debounce dropdown, and selecting the suggested airport.
+     - *Zero-Shot Grounding*: Without domain-specific web navigation fine-tuning, zero-shot discrete diffusion on raw DOM structures frequently enters cyclic click loops on complex dynamic applications.
 
 ---
 
@@ -183,16 +208,22 @@ uv run python examples/flights.py --keep-open
 ---
 
 ## Architecture & Codebase Map
-
+ 
 | Component | File | Description |
 | :--- | :--- | :--- |
-| **Agent Controller** | [agent.py](jev_ultrafast/agent.py) | Main execution loop, DOM snapshot coordination, text helper handoff |
-| **MLX Direct Engine** | [mlx_direct.py](jev_ultrafast/backends/mlx_direct.py) | Metal acceleration, KV prefix cache, Pass-1 early exit, resident text gen |
-| **CUDA / ROCm Engine** | [torch_direct.py](jev_ultrafast/backends/torch_direct.py) | Multi-device PyTorch engine for NVIDIA DGX Spark and AMD Strix Halo |
+| **Agent Controller** | [agent.py](jev_ultrafast/agent.py) | Main execution loop, DOM snapshot coordination, auto hardware routing |
+| **Metal Structured Engine** | [mlx_structured.py](jev_ultrafast/backends/mlx_structured.py) | Training-free discrete diffusion on Apple Silicon Metal, 117 ms steady-state |
+| **PyTorch Structured Engine** | [torch_structured.py](jev_ultrafast/backends/torch_structured.py) | Discrete diffusion engine for NVIDIA CUDA & AMD Strix Halo ROCm |
+| **MLX Direct Engine** | [mlx_direct.py](jev_ultrafast/backends/mlx_direct.py) | Baseline Metal acceleration, KV prefix cache, Pass-1 early exit |
+| **Structured Canvas Compiler** | [structured_canvas.py](jev_ultrafast/structured_canvas.py) | Pure template layout compiler, single-token slot mappings, fixed mask |
+| **Decision Request Builder** | [decision_request.py](jev_ultrafast/decision_request.py) | Pure Jev-compatible question builder for operation & target heads |
+| **Hardware Inspector CLI** | [check_hardware.py](scripts/check_hardware.py) | Diagnostic tool checking Metal, ROCm, CUDA, and memory requirements |
+| **Strix Halo Launch Script** | [setup_strix_halo.sh](scripts/setup_strix_halo.sh) | Turnkey setup and RDNA 3.5 HIP target overrides for AMD APUs |
+| **NVIDIA CUDA Launch Script** | [setup_nvidia_cuda.sh](scripts/setup_nvidia_cuda.sh) | Turnkey setup for CUDA 12.4+, FlashAttention-2, and BitsAndBytes |
 | **Candidate Head Slicing** | [action_candidates.py](jev_ultrafast/action_candidates.py) | Grounded token pool formatting and discrete logit slicing |
 | **DOM Snapshot Engine** | [snapshot.js](jev_ultrafast/snapshot.js) | Atomic DOM reader, control indexing, occlusion checking |
 | **Interactive Inspector** | [demo.py](jev_ultrafast/demo.py) | Web inspector backend with real-time entropy/margin badges |
-| **LoRA Fine-Tuning** | [train_lora.py](scripts/train_lora.py) | Apple Silicon Metal LoRA training loop on `data/lora/` |
+| **Benchmark Suite** | [evaluate_structured_diffusion.py](scripts/evaluate_structured_diffusion.py) | 50-state Google Flights benchmark evaluation runner |
 
 ---
 
@@ -204,7 +235,7 @@ All test suites run completely offline and require no paid API keys:
 # Code style and linting
 uv run ruff check .
 
-# Unit and backend tests (46 passing tests)
+# Unit and backend tests (69 passing tests)
 uv run pytest
 
 # Frontend inspector syntax checks
@@ -225,6 +256,8 @@ We extend our gratitude to:
 - The **Browser Use** team for pioneering fast, indexed DOM action spaces and the `jev-ultrafast` reference architecture.
 - **Google DeepMind** for the Gemma and DiffusionGemma architecture and open weights.
 - The **Apple MLX** team for state-of-the-art Metal machine learning primitives on macOS.
+- The **vLLM project** for structured diffusion reads and fixed template pinning (PR #57250).
+- **open-jev** (JoshuaSP) for parallel categorical diffusion constraint concepts.
 
 ---
 

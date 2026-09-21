@@ -188,6 +188,10 @@ def test_decision_recorder_and_replay_runner(tmp_path):
 
 def test_torch_backend_device_resolution(monkeypatch):
     from jev_ultrafast.backends.torch_direct import TorchDiffusionDirectBackend
+    from jev_ultrafast.backends.torch_structured import (
+        TorchDiffusionStructuredBackend,
+        _clone_past_key_values,
+    )
 
     backend = TorchDiffusionDirectBackend(device="cuda:0")
     assert backend._resolve_device() == "cuda:0"
@@ -195,4 +199,39 @@ def test_torch_backend_device_resolution(monkeypatch):
     backend_auto = TorchDiffusionDirectBackend()
     dev = backend_auto._resolve_device()
     assert dev in ("cuda", "cpu")
+
+    # Structured PyTorch backend
+    struct_backend = TorchDiffusionStructuredBackend(device="cuda:0")
+    assert struct_backend._resolve_device() == "cuda:0"
+    assert struct_backend.name == "torch_structured"
+
+    struct_auto = TorchDiffusionStructuredBackend()
+    assert struct_auto._resolve_device() in ("cuda", "cpu")
+
+    # Test reset_session
+    struct_backend._cached_goal = "Goal"
+    struct_backend._cached_prefix_tokens = [1, 2, 3]
+    struct_backend.reset_session()
+    assert struct_backend._cached_goal is None
+    assert struct_backend._cached_prefix_tokens is None
+
+    # Test _clone_past_key_values
+    assert _clone_past_key_values(None) is None
+    mock_kv = Mock()
+    mock_kv.copy.return_value = "cloned_cache"
+    assert _clone_past_key_values(mock_kv) == "cloned_cache"
+
+
+def test_agent_backend_resolution(monkeypatch):
+    from jev_ultrafast.agent import Agent
+
+    monkeypatch.setattr("jev_ultrafast.agent.Browser", Mock())
+
+    # Direct string backend specification
+    agent_torch = Agent("https://example.test", "Goal", backend="torch_structured")
+    assert agent_torch.backend.name == "torch_structured"
+
+    agent_mlx = Agent("https://example.test", "Goal", backend="mlx_structured")
+    assert agent_mlx.backend.name == "mlx_structured"
+
 

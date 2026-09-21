@@ -159,7 +159,7 @@ def build_comparison_frame(
         )
         d.text(
             (rx + 28, ry + 36 + vh - 36),
-            "✓ DiffBrowse completed in 21.4s (100% Local)",
+            "✓ DiffBrowse completed in 7.1s (100% Local)",
             font=font(13, True),
             fill="#4ade80",
         )

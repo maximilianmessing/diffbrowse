@@ -1,0 +1,53 @@
+# DiffBrowse Container for NVIDIA DGX / Hopper / Blackwell / RTX (CUDA 12.4+)
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+
+LABEL maintainer="DiffBrowse Contributors"
+LABEL description="Air-gapped structured discrete diffusion browser agent on NVIDIA CUDA"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV JEV_BACKEND=torch_structured
+
+WORKDIR /workspace
+
+# Install system dependencies & Chromium for browser harness
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    python3 \
+    python3-pip \
+    python3-venv \
+    chromium-browser \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Install PyTorch CUDA wheel
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir bitsandbytes>=0.43.0
+
+# Copy repository
+COPY . /workspace
+
+# Install project dependencies
+RUN uv sync --extra cuda
+
+# Optional FlashAttention-2 (best-effort)
+RUN pip install --no-cache-dir flash-attn --no-build-isolation || true
+
+EXPOSE 8766
+
+CMD ["uv", "run", "python", "-m", "jev_ultrafast.demo", "--port", "8766", "--host", "0.0.0.0"]

@@ -102,23 +102,23 @@ DiffBrowse unifies both responsibilities inside the resident DiffusionGemma mode
 
 ---
 
-### Empirical Benchmark Results: DiffBrowse vs. Cloud Jev
+### Empirical Hyperparameter Evaluation & Hardware Latencies
 
-We benchmarked DiffBrowse against the foundational Cloud Jev speculative baseline across recorded real browser decision states spanning flight searches, boutique hotel filtering, Wikipedia research, and large candidate scaling:
+To determine optimal diffusion hyperparameters (canvas lengths, pass counts, early exit thresholds), we evaluated DiffBrowse across $N=30$ structured offline scenario representations spanning flight searches, boutique hotel filtering, Wikipedia research, and large candidate sets:
 
-| Architecture / Model | Runtime / Execution | Exact Action Acc (%) | Invalid Action Rate (%) | p50 Decoder Latency (ms) | p50 Total Decision (ms) | Active RAM (GB) | Air-Gapped / Privacy |
+| Architecture / Model | Runtime / Execution | Evaluated Action Acc (%) | Invalid Action Rate (%) | p50 Decoder Latency (ms) | p50 Total Decision (ms) | Active RAM (GB) | Air-Gapped / Privacy |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Cloud Jev (Baseline)** | Remote HTTP/2 Multi-Head Fan-out | **95.0%** | **0.0%** | — | **110.0 ms** | 0.06 GB | Cloud API |
 | **DiffBrowse (Generate)** | Local MLX Diffusion Text (16 tokens) | **88.0%** | **0.0%** | 248.6 ms | **435.1 ms** | 15.69 GB | **100% On-Device** |
 | **DiffBrowse (Direct L=64, Mid)**| Local MLX Slicing (Passes=2) | **60.0%** | **0.0%** | 206.2 ms | **395.8 ms** | 15.65 GB | **100% On-Device** |
 | **DiffBrowse (Direct L=32, Pass 1)**| Local MLX Slicing (Early Exit) | 16.7% – 50.0% | **0.0%** | **110.2 ms** | **303.4 ms** | 15.59 GB | **100% On-Device** |
 | **AR Control (Qwen2.5-0.5B)** | Local MLX Autoregressive | 0.0% | 76.7% | 38.2 ms | 88.5 ms | 0.35 GB | 100% On-Device |
 
-#### Key Insights
-1. **Pass Count Sweet Spot**: 2 decoder passes are the empirical optimum for zero-shot decision-making. 1 pass takes 110 ms decoder time; 2 passes take 220 ms. Adding 4 or 8 passes increases latency to 631 ms and 1,076 ms without accuracy gains on un-finetuned slots.
+#### Key Insights & Ground Truth Realities
+1. **Pass Count Sweet Spot**: 2 decoder passes are the empirical optimum for zero-shot decision-making on Metal. 1 pass takes 110 ms decoder time; 2 passes take 220 ms.
 2. **The Bidirectional Attention Slot**: In canvas length ablations, canvas length 64 with a middle slot achieved **60.0% accuracy**, vs **23.3%** for early slot 0. Bidirectional attention allows the action token to condition simultaneously on surrounding context.
 3. **Small Autoregressive Models Collapse**: The 0.5B autoregressive control model had a 76.7% invalid action rate, hallucinating invalid characters and ignoring candidate constraints. High representation capacity (26B MoE parameters) is necessary for reliable visual and DOM grounding.
-4. **Zero Memory Leaks**: Active memory remained invariant at **15.41 GB** throughout a 50-step continuous stress test on macOS Metal.
+4. **Physical Memory Boundaries**: The 4-bit 26B weights require **15.41 GB**. Adding macOS system overhead and browser execution brings the physical memory requirement to **≥ 24 GB Unified Memory**. DiffBrowse must not be run on 16 GB machines.
+5. **Real-World Live Web Navigation**: Running zero-shot on complex live commercial websites (e.g. Google Flights) remains an active challenge due to blocking cookie consent modals, large DOM trees exceeding typical action window budgets, and debounced asynchronous dropdowns. Fine-tuning dedicated navigation adapters on real browser traces is the key next step.
 
 ---
 

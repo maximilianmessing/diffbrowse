@@ -1,0 +1,54 @@
+# DiffBrowse Container for AMD Strix Halo / Ryzen AI Max 395 (ROCm 6.2+)
+FROM rocm/dev-ubuntu-24.04:6.2.4
+
+LABEL maintainer="DiffBrowse Contributors"
+LABEL description="Air-gapped structured discrete diffusion browser agent on AMD Strix Halo (ROCm/HIP)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# AMD RDNA 3.5 APU Overrides
+ENV HSA_OVERRIDE_GFX_VERSION=11.5.0
+ENV HIP_VISIBLE_DEVICES=0
+ENV PYTORCH_HIP_ALLOC_CONF="garbage_collection_threshold:0.8,max_split_size_mb:512"
+ENV JEV_BACKEND=torch_structured
+
+WORKDIR /workspace
+
+# Install system dependencies & Chromium for browser harness
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    python3 \
+    python3-pip \
+    python3-venv \
+    chromium-browser \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libasound2t64 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Install PyTorch ROCm 6.2 wheel
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
+
+# Copy repository
+COPY . /workspace
+
+# Install project dependencies
+RUN uv sync --extra rocm
+
+EXPOSE 8766
+
+CMD ["uv", "run", "python", "-m", "jev_ultrafast.demo", "--port", "8766", "--host", "0.0.0.0"]

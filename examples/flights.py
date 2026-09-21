@@ -3,6 +3,7 @@
 import argparse
 import base64
 import json
+import os
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -42,10 +43,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="artifacts/flights/latest")
     parser.add_argument("--keep-open", action="store_true")
+    parser.add_argument("--backend", default=os.environ.get("JEV_BACKEND", "mlx_structured"))
     args = parser.parse_args()
     folder = Path(args.output)
     folder.mkdir(parents=True, exist_ok=True)
-    agent = Agent(URL, GOALS)
+    agent = Agent(URL, GOALS, backend=args.backend)
     try:
         for state in agent.run():
             last = state["history"][-1] if state["history"] else {}

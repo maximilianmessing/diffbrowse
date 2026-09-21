@@ -21,10 +21,18 @@ def __getattr__(name: str):
         from .hybrid import HybridBackend
 
         return HybridBackend
+    if name == "MlxDiffusionStructuredBackend":
+        from .mlx_structured import MlxDiffusionStructuredBackend
+
+        return MlxDiffusionStructuredBackend
     if name == "TorchDiffusionDirectBackend":
         from .torch_direct import TorchDiffusionDirectBackend
 
         return TorchDiffusionDirectBackend
+    if name == "TorchDiffusionStructuredBackend":
+        from .torch_structured import TorchDiffusionStructuredBackend
+
+        return TorchDiffusionStructuredBackend
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -34,9 +42,11 @@ __all__ = [
     "JevBackend",
     "HybridBackend",
     "MlxDiffusionDirectBackend",
+    "MlxDiffusionStructuredBackend",
     "MlxDiffusionGenerateBackend",
     "MlxAutoregressiveBackend",
     "TorchDiffusionDirectBackend",
+    "TorchDiffusionStructuredBackend",
     "calculate_entropy",
     "calculate_top2_margin",
 ]

@@ -31,7 +31,7 @@ def load_environment():
 
 def response_state():
     state = AGENT.snapshot() if AGENT else {"page": None, "status": "idle", "history": [], "decision": None}
-    backend_name = getattr(getattr(AGENT, "backend", None), "name", "jev") if AGENT else "jev"
+    backend_name = getattr(getattr(AGENT, "backend", None), "name", "mlx_direct") if AGENT else "mlx_direct"
     return {
         **state,
         "backend": backend_name,
@@ -63,6 +63,10 @@ def command(name, body):
             from .backends import MlxDiffusionDirectBackend
 
             backend_obj = MlxDiffusionDirectBackend(canvas_length=32, num_passes=2)
+        elif backend_name == "mlx_structured":
+            from .backends import MlxDiffusionStructuredBackend
+
+            backend_obj = MlxDiffusionStructuredBackend()
         elif backend_name == "hybrid":
             from .backends import HybridBackend
 
@@ -170,7 +174,7 @@ def main():
     load_environment()
     atexit.register(close_browser)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"Jev Ultrafast: {ORIGIN}", flush=True)
+    print(f"DiffBrowse Inspector: {ORIGIN}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

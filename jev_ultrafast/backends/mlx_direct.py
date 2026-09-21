@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import time
 from typing import Any, Dict, List, Optional
@@ -116,6 +117,21 @@ class MlxDiffusionDirectBackend:
 
     def _ensure_loaded(self):
         _patch_diffusion_encoder()
+        try:
+            total_ram_gb = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / (1024**3)
+            if total_ram_gb < 23.5:
+                import warnings
+
+                warnings.warn(
+                    f"DiffBrowse (DiffusionGemma-26B) strictly requires ≥ 24 GB Unified Memory. "
+                    f"Detected {total_ram_gb:.1f} GB. "
+                    "You may experience severe swap thrashing or OS memory termination.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+        except Exception:
+            pass
+
         if self._model is None or self._processor is None:
             from mlx_vlm import load
 
@@ -163,11 +179,16 @@ class MlxDiffusionDirectBackend:
             f"Goal: {goal}\n"
             f"Page Title: {browser_state.get('title', '')}\n"
             f"Page URL: {browser_state.get('url', '')}\n"
-            f"Visible Page Content:\n{browser_state.get('text', '')[:2000]}\n\n"
+            f"Rules:\n"
+            f"- Advance the goal from the current page. Do not repeat satisfied steps.\n"
+            f"- Do not choose a field that already contains the requested value.\n"
+            f"- When typing into a combobox/search field, CLICK the matching autocomplete suggestion next.\n"
+            f"- For date pickers, CLICK the field, select the date, then CLICK Done.\n"
+            f"- When required fields are ready, CLICK Search immediately.\n\n"
             f"Recent Action History:\n{recent_hist}\n\n"
             f"{candidate_lines}\n\n"
-            "Select the single best next action from the list above to achieve the goal.\n"
-            "Action choice: ["
+            "Select the single best next action to advance the goal.\n"
+            "Respond strictly with:\nACTION=<label>"
         )
 
         formatted_prompt = apply_chat_template(self._processor, self._model.config, user_content)
@@ -211,21 +232,27 @@ class MlxDiffusionDirectBackend:
                     cache_hit = True
 
         if kv_cache is None:
-            kv_cache = self._model.make_cache()
-            self._model.diffusion_prefill_cache(input_ids_mx, cache=kv_cache)
-            mx.eval([c.state for c in kv_cache])
+            if self.enable_prefix_caching and len(input_ids) > 16:
+                prefix_cutoff = min(len(input_ids), 256)
+                self._cached_goal = goal
+                self._cached_prefix_tokens = input_ids[:prefix_cutoff]
+                prefix_ids_chunk = input_ids_mx[:, :prefix_cutoff]
+                cached_c = self._model.make_cache()
+                self._model.diffusion_prefill_cache(prefix_ids_chunk, cache=cached_c)
+                mx.eval([c.state for c in cached_c])
+                self._cached_prefix_cache = cached_c
 
-            # Store invariant prefix cache for this task/goal if enabled
-            if self.enable_prefix_caching:
-                prefix_cutoff = min(len(input_ids), 64)
-                if prefix_cutoff > 16:
-                    self._cached_goal = goal
-                    self._cached_prefix_tokens = input_ids[:prefix_cutoff]
-                    prefix_ids_chunk = input_ids_mx[:, :prefix_cutoff]
-                    cached_c = self._model.make_cache()
-                    self._model.diffusion_prefill_cache(prefix_ids_chunk, cache=cached_c)
-                    mx.eval([c.state for c in cached_c])
-                    self._cached_prefix_cache = cached_c
+                cloned = _clone_prompt_cache_for_apc(self._cached_prefix_cache)
+                suffix_ids = input_ids_mx[:, prefix_cutoff:]
+                if suffix_ids.shape[1] > 0 and cloned is not None:
+                    kv_cache = self._model.diffusion_update_cache(suffix_ids, cache=cloned)
+                    mx.eval([c.state for c in kv_cache])
+                else:
+                    kv_cache = cloned or self._cached_prefix_cache
+            else:
+                kv_cache = self._model.make_cache()
+                self._model.diffusion_prefill_cache(input_ids_mx, cache=kv_cache)
+                mx.eval([c.state for c in kv_cache])
 
         prefill_ms = (time.perf_counter() - prefill_tic) * 1000
 
@@ -322,6 +349,7 @@ class MlxDiffusionDirectBackend:
                 pass1_ready = (
                     pass_margin >= self.pass1_margin_threshold
                     or pass_entropy <= self.pass1_entropy_threshold
+                    or top_prob >= 0.60
                 )
                 if p == 1 and pass1_ready:
                     break
@@ -352,6 +380,12 @@ class MlxDiffusionDirectBackend:
         final_entropy = calculate_entropy(final_probs_dict)
         final_margin = calculate_top2_margin(final_probs_dict)
         top_prob = max(final_probs_dict.values()) if final_probs_dict else 1.0
+
+        # Release temporary Metal scratchpad allocations back to system pool
+        try:
+            mx.metal.clear_cache()
+        except Exception:
+            pass
 
         return Decision(
             action_id=selected_candidate.action_id,
@@ -414,6 +448,11 @@ class MlxDiffusionDirectBackend:
             generation_mode="diffusion",
         )
         raw = result.text if hasattr(result, "text") else str(result)
+        try:
+            mx.metal.clear_cache()
+        except Exception:
+            pass
+
         match = re.search(r'VALUE\s*[:=]\s*["\']?([^"\'\n]+)["\']?', raw)
         if match:
             return match.group(1).strip().strip('*')

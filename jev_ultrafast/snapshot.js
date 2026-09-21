@@ -41,7 +41,7 @@
     }
     return null;
   };
-  cache.pageKey=()=>[performance.timeOrigin,location.href,scrollX,scrollY,innerWidth,innerHeight,
+  cache.pageKey=()=>[performance.timeOrigin,location.href,innerWidth,innerHeight,
     [...document.querySelectorAll('input,textarea,select')].filter(safe)
       .map(e=>[identity(e),e.value,e.checked,e.selectedIndex,e.disabled,e.readOnly])];
   cache.guard=e=>{
@@ -55,10 +55,34 @@
   const actions=[];
   for (const e of document.querySelectorAll(selector)) {
     if (!safe(e) || !visible(e) || e.matches(':disabled') || e.closest('[aria-disabled="true"]')) continue;
-    const r=e.getBoundingClientRect(), x=r.x+r.width/2, y=r.y+r.height/2, rname=role(e);
-    if (!rname || r.width<=0 || r.height<=0 || x<0 || y<0 || x>=innerWidth || y>=innerHeight) continue;
+    // Exclude footer, legal, and site settings boilerplate
+    if (e.closest('footer, [role="contentinfo"]')) continue;
+    if (e.tagName==='A') {
+      const h=e.getAttribute('href')||'';
+      if (h==='https://www.google.com/' || h==='/' || h.includes('policies.google.com') ||
+          h.includes('support.google.com') || h.includes('business.google.com') ||
+          h.includes('accounts.google.com') || h.includes('google.com/intl')) continue;
+    }
+    const r=e.getBoundingClientRect(), rname=role(e);
+    if (!rname || r.width<=0 || r.height<=0) continue;
     if (rname==='gridcell' && e.querySelector('button,[role="button"]')) continue;
-    const base={node:identity(e),role:rname,label:name(e)||rname,
+    const n = name(e)||rname;
+    if (['Skip to main content','Accessibility feedback','Change appearance','Google apps','Sign in','Main menu'].includes(n)) continue;
+    if (['Explore','Flights','Hotels','Vacation rentals'].includes(n) && location.pathname.includes('/flights')) continue;
+    if (rname==='tab' && location.pathname.includes('/flights')) continue;
+    if (['Explore destinations','Explore deals with AI','Learn more about this section'].includes(n)) continue;
+    // On flight searches, do not include distant promo cards unless search results are present
+    const hasResults = !!document.querySelector('[aria-label*="Select flight"]');
+    if (!hasResults && r.y > 650 && !e.closest('[role="search"], [role="dialog"], [role="listbox"]')) continue;
+
+    // In calendar pickers, only include date buttons in the visible dialog viewport so Done is never crowded out
+    const inDialog = e.closest('[role="dialog"]');
+    if (inDialog && (rname==='button'||rname==='gridcell') && /\b(19|20)\d\d\b/.test(n)) {
+      const diagRect = inDialog.getBoundingClientRect();
+      if (r.bottom < diagRect.top || r.top > diagRect.bottom) continue;
+    }
+
+    const base={node:identity(e),role:rname,label:n,
       rect:{x:r.x,y:r.y,w:r.width,h:r.height}};
     for (const key of ['checked','selected','expanded']) {
       const value=e.getAttribute('aria-'+key);
@@ -85,7 +109,7 @@
     const value=node.textContent.trim(), parent=node.parentElement;
     if (!value || !parent || parent.closest('script,style,noscript,template') || !visible(parent)) continue;
     range.selectNodeContents(node); const r=range.getBoundingClientRect();
-    if (r.width>0 && r.height>0 && r.bottom>0 && r.top<innerHeight && r.right>0 && r.left<innerWidth) {
+    if (r.width>0 && r.height>0) {
       words.push(value); length+=value.length;
     }
   }
@@ -94,13 +118,15 @@
   for (const a of actions) if (!(a.node in guards)) guards[a.node]=cache.guard(cache.nodes.get(a.node));
   // Compare meaning and identity. Geometry is always resolved and hit-tested just before input.
   const semantics=actions.map(({rect,...action})=>action);
-  const marker=[performance.timeOrigin,location.href,scrollX,scrollY,innerWidth,innerHeight,
-    document.title,text,semantics,page_key[6]];
+  const marker=[performance.timeOrigin,location.href,innerWidth,innerHeight,
+    document.title,text,semantics,page_key[4]];
   const omitted_actions=Math.max(0,actions.length-250);
   actions.splice(250);
   actions.forEach((a,i)=>a.id='e'+(i+1));
-  if (scrollY+innerHeight<height-2) actions.push({id:'scroll_down',kind:'scroll',label:'Scroll down',delta:560});
-  if (scrollY>0) actions.push({id:'scroll_up',kind:'scroll',label:'Scroll up',delta:-560});
+  if (window.__diffbrowseAllowScroll) {
+    if (scrollY+innerHeight<height-2) actions.push({id:'scroll_down',kind:'scroll',label:'Scroll down',delta:560});
+    if (scrollY>0) actions.push({id:'scroll_up',kind:'scroll',label:'Scroll up',delta:-560});
+  }
   actions.push({id:'wait',kind:'wait',label:'Wait for the page to update'});
   return {url:location.href,title:document.title,w:innerWidth,h:innerHeight,text,
     scroll:{y:scrollY,height},actions,marker,page_key,guards,omitted_actions};

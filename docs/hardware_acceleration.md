@@ -4,142 +4,128 @@
 
 This guide covers setup, environment configuration, and execution across the three primary hardware platforms:
 1. **Apple Silicon (M-Series via MLX Metal)**
-2. **NVIDIA DGX Spark / Hopper / Blackwell (via CUDA + FlashAttention-2)**
+2. **NVIDIA DGX / Hopper / Blackwell / RTX (via CUDA 12.4+ & FlashAttention-2)**
 3. **AMD Strix Halo / Ryzen AI Max 395 (via ROCm 6.2+ and Unified LPDDR5X)**
 
 ---
 
 ## 1. Platform Comparison & Sizing Matrix
 
-| Platform | Architecture | Acceleration Framework | Precision / Quantization | Resident Memory | Expected Step Latency |
-| :--- | :--- | :--- | :--- | :---: | :---: |
-| **Apple Silicon (M4/M5)** | 16–128 GB Unified Memory | **MLX Metal** | 4-bit (`mlx-community`) | **15.41 GB** | **200 – 395 ms** |
-| **NVIDIA DGX Spark** | H100 / GH200 / B200 (HBM3e) | **PyTorch + CUDA 12.4+** | 4-bit (BitsAndBytes) / BF16 | **16.20 GB** | **80 – 160 ms** |
-| **AMD Strix Halo** | Ryzen AI Max+ 395 (40 CUs) | **PyTorch + ROCm 6.2+ (HIP)** | 4-bit / BF16 (Unified RAM) | **15.80 GB** | **180 – 350 ms** |
+| Platform | Architecture | Acceleration Framework | Precision / Quantization | Memory Requirement | Supported Backend | Latency Profile |
+| :--- | :--- | :--- | :--- | :--- | :---: | :---: |
+| **Apple Silicon (M-Series)** | Pro / Max / Ultra (Unified RAM) | **MLX Metal** | 4-bit (`mlx-community`) | **Strictly ≥ 24 GB** (15.41 GB weights) | `mlx_structured` | **110–117 ms** (Pass 1) / **395–415 ms** (warm multi-pass) |
+| **AMD ROCm** | Strix Halo (RDNA 3.5 APU) | **PyTorch + ROCm 6.2+ (HIP)** | 4-bit / BF16 (Unified LPDDR5X) | **≥ 24 GB Unified RAM** | `torch_structured` | Sub-second structured discrete diffusion |
+| **NVIDIA CUDA** | RTX 3090/4090, A100/H100 | **PyTorch + CUDA 12.4+** | 4-bit (BitsAndBytes NF4) / BF16 | **≥ 24 GB VRAM** | `torch_structured` | Sub-second structured discrete diffusion |
 
 ---
 
-## 2. NVIDIA DGX Spark / Hopper Deployment
-
-NVIDIA DGX systems provide massive compute and high-bandwidth memory (HBM3/HBM3e), making them ideal for high-throughput browser agent fleets or ultra-low-latency execution.
-
-### Prerequisites
-- Ubuntu 22.04 LTS or 24.04 LTS
-- NVIDIA Driver 550+ and CUDA 12.4+
-- Python 3.10+ and `uv`
-
-### Installation
-
-```bash
-git clone https://github.com/maximilianmessing/diffbrowse.git
-cd diffbrowse
-
-# Install dependencies with CUDA support
-uv sync --extra cuda
-
-# (Optional) Install FlashAttention-2 for optimized prefill kernels
-pip install flash-attn --no-build-isolation
-```
-
-### Launching DiffBrowse on DGX
-
-Set the backend to `torch_direct`:
-
-```bash
-# Run with CUDA acceleration
-JEV_BACKEND=torch_direct uv run python -m jev_ultrafast.demo
-```
-
-Or invoke the agent programmatically:
-
-```python
-from jev_ultrafast import Agent
-from jev_ultrafast.backends import TorchDiffusionDirectBackend
-
-backend = TorchDiffusionDirectBackend(
-    model_name="google/diffusiongemma-26b-it",
-    device="cuda",
-    torch_dtype="bfloat16",
-    load_in_4bit=True,
-)
-
-with Agent("https://www.google.com/travel/flights", "Find flights to London", backend=backend) as agent:
-    for state in agent.run():
-        print(f"Step latency: {state['elapsed_ms']} ms")
-```
-
----
-
-## 3. AMD Strix Halo / Ryzen AI Max 395 Deployment
+## 2. AMD Strix Halo / Ryzen AI Max 395 Deployment
 
 **AMD Strix Halo** (Ryzen AI Max 300 series, such as the Ryzen AI Max+ 395) features up to **40 RDNA 3.5 Compute Units** sharing up to **128 GB of unified 256-bit LPDDR5X memory** (up to 500 GB/s bandwidth). Like Apple Silicon, its unified memory pool allows loading 26B parameter models without discrete PCIe bus transfer bottlenecks.
 
-### Prerequisites
-- Ubuntu 24.04 LTS (Kernel 6.8+ or 6.10+)
-- AMD ROCm 6.2+ or ROCm 7.0+
-- User added to `render` and `video` groups (`sudo usermod -aG render,video $USER`)
-
-### Installation
-
+### Turnkey Setup Script
+Run the automated Strix Halo setup script:
 ```bash
-git clone https://github.com/maximilianmessing/diffbrowse.git
-cd diffbrowse
-
-# Install PyTorch with ROCm wheels
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
-uv sync --extra rocm
+chmod +x scripts/setup_strix_halo.sh
+./scripts/setup_strix_halo.sh
 ```
 
-### Environment Configuration for RDNA 3.5
-
-Because Strix Halo uses RDNA 3.5 (gfx1150 / gfx1151), set the ROCm architecture target overrides in your environment:
-
+### Manual Setup
 ```bash
-# Enable RDNA 3.5 HIP target override
+# 1. Add user to render and video groups
+sudo usermod -aG render,video $USER
+
+# 2. Install PyTorch with ROCm 6.2 wheel
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
+uv sync --extra rocm
+
+# 3. Configure RDNA 3.5 HIP target overrides
 export HSA_OVERRIDE_GFX_VERSION=11.5.0
 export HIP_VISIBLE_DEVICES=0
-
-# Configure ROCm unified memory allocations
-export PYTORCH_HIP_ALLOC_CONF=garbage_collection_threshold:0.8,max_split_size_mb:512
+export PYTORCH_HIP_ALLOC_CONF="garbage_collection_threshold:0.8,max_split_size_mb:512"
 ```
 
 ### Launching DiffBrowse on Strix Halo
-
 ```bash
-# Run DiffBrowse with ROCm acceleration
-JEV_BACKEND=torch_direct uv run python -m jev_ultrafast.demo
+# Launch with ROCm structured diffusion engine
+JEV_BACKEND=torch_structured uv run python -m jev_ultrafast.demo
 ```
 
-The backend automatically detects the HIP runtime:
-```text
-Loaded model onto rocm (AMD Strix Halo)
-Unified Memory Footprint: 15.80 GB / 128.00 GB Available
+### Zero-Setup Container (Docker)
+```bash
+docker build -t diffbrowse:rocm -f docker/Dockerfile.rocm .
+docker run --rm -it \
+  --device=/dev/kfd --device=/dev/dri \
+  --group-add video --group-add render \
+  -p 8766:8766 \
+  diffbrowse:rocm
+```
+
+---
+
+## 3. NVIDIA DGX / Hopper / Blackwell / RTX Deployment
+
+NVIDIA systems provide high-throughput Tensor Cores and FlashAttention-2 support for ultra-low latency structured canvas evaluation.
+
+### Turnkey Setup Script
+Run the automated NVIDIA setup script:
+```bash
+chmod +x scripts/setup_nvidia_cuda.sh
+./scripts/setup_nvidia_cuda.sh
+```
+
+### Manual Setup
+```bash
+# 1. Install PyTorch with CUDA 12.4
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+uv sync --extra cuda
+pip install bitsandbytes>=0.43.0
+
+# 2. (Optional) Install FlashAttention-2
+pip install flash-attn --no-build-isolation
+```
+
+### Launching DiffBrowse on NVIDIA
+```bash
+# Launch with CUDA structured diffusion engine
+JEV_BACKEND=torch_structured uv run python -m jev_ultrafast.demo
+```
+
+### Zero-Setup Container (Docker)
+```bash
+docker build -t diffbrowse:cuda -f docker/Dockerfile.cuda .
+docker run --rm -it --gpus all -p 8766:8766 diffbrowse:cuda
 ```
 
 ---
 
 ## 4. Apple Silicon (M-Series via MLX Metal)
 
-For Apple Silicon Macs (M1/M2/M3/M4/M5 with 16 GB+ unified memory), DiffBrowse uses Apple's native **MLX** framework.
+For Apple Silicon Macs (M-series Pro / Max / Ultra), DiffBrowse uses Apple's native **MLX** framework.
+
+> [!IMPORTANT]
+> **Strict Memory Requirement**: DiffBrowse strictly requires **≥ 24 GB Unified Memory**. The 4-bit model weights occupy 15.41 GB. Combined with macOS WindowServer (~3 GB), Chromium (~1 GB), and transient Metal buffers (~1.5 GB), total footprint is ~21 GB. Running on 16 GB machines will trigger heavy swap thrashing and OS process termination.
 
 ```bash
 # Install MLX Metal dependencies
 uv sync --extra mlx
 
-# Launch with native Metal backend
-JEV_BACKEND=mlx_direct uv run python -m jev_ultrafast.demo
+# Launch with native Metal structured backend
+JEV_BACKEND=mlx_structured uv run python -m jev_ultrafast.demo
 ```
 
-- **Zero GPU Memory Leaks**: Uses layer-by-layer encoder evaluation (`mx.eval`) to cap resident memory at 15.41 GB.
-- **Adaptive Early Exit**: Terminates in **110 ms** on confident decisions.
-- **Local Text Generation**: Synthesizes field strings in **241 ms** offline.
+- **Invariant Prefix Caching**: Prefills static task preamble once; multi-turn turns execute in **3.97 ms** prefill.
+- **Adaptive Escalation**: Terminates in **110–117 ms** on confident decisions ($M \ge 0.65$ or $H \le 0.35$).
+- **Local Text Generation**: Synthesizes form field strings offline without external APIs.
 
 ---
 
-## 5. Web Inspector Multi-Device Selector
+## 5. Hardware Diagnostics CLI
 
-The interactive inspector at `http://127.0.0.1:8766` allows toggling between acceleration backends dynamically from the UI:
-- **Local DiffusionGemma (Apple Silicon Metal)**
-- **Local DiffusionGemma (NVIDIA DGX / AMD Strix Halo)**
-- **Hybrid (Local + Cloud Jev)**
-- **Cloud Jev (Speculative Baseline)**
+DiffBrowse includes a multi-platform hardware diagnostic utility that inspects memory, runtime drivers, and environment overrides across all three architectures:
+
+```bash
+uv run python scripts/check_hardware.py
+```
+
+Output highlights missing overrides (e.g. `HSA_OVERRIDE_GFX_VERSION=11.5.0` on Strix Halo) or memory constraints.
