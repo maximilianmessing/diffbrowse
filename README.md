@@ -22,7 +22,7 @@
 | **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to TypeSafe/OpenRouter | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM)** |
 | **API Cost per Action** | \$0.02 – \$0.10 | \$0.001 – \$0.005 | **\$0.00 (Zero API fees)** | **\$0.00 (Zero API fees)** |
 | **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (120 ms resident weights)** |
-| **Google Flights Demo** | ~40–60 seconds | 7.09 seconds | **7.21 seconds** (100% offline) | **6.14 seconds** (100% offline) |
+| **Google Flights Task** | ~40–60 seconds | **7.09 s** ([Upstream baseline video](docs/demo.mp4)) | **Replay & local model verified** (110–395 ms/step) | **Replay & local model verified** (80–160 ms/step) |
 
 ---
 

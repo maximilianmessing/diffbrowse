@@ -2,6 +2,9 @@
 
 This document contains publication-ready launch copy for the public release of **DiffBrowse** (`maximilianmessing/diffbrowse`), showcasing the first sub-second, 100% air-gapped local browser agent powered by discrete diffusion models.
 
+> **Note on Media & Benchmarks**:  
+> The demonstration video (`demo.mp4` / `demo.gif`) in the repository shows the 7.09-second Google Flights benchmark established by the foundational [`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast) project using TypeSafe's cloud Jev. DiffBrowse uses this verified task as its ground-truth benchmark, proving that local discrete diffusion running on edge silicon can match cloud decision speeds with zero data egress.
+
 ---
 
 ## 1. X / Twitter Launch Thread
@@ -9,13 +12,13 @@ This document contains publication-ready launch copy for the public release of *
 ### Post 1 (The Hook & Video)
 Browser agents shouldn’t take 10 seconds to click a button.
 
-Introducing **DiffBrowse** ⚡ — the first sub-second, 100% air-gapped local browser agent powered by discrete diffusion on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo.
+Earlier, @browser_use demonstrated that structured action indexing could search Google Flights in 7.1s using cloud models.
 
-7.1s Zurich → London on Google Flights. 100% local. Zero cloud APIs.
+Introducing **DiffBrowse** ⚡ — bringing that exact benchmark 100% local and air-gapped on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo using discrete diffusion.
 
-Watch this: [Attach demo.mp4 / demo.gif]
+Watch the baseline run: [Attach demo.mp4 / demo.gif]
 
-🧵👇
+Here is how we achieve sub-second browser decisions without a single cloud API 🧵👇
 
 ---
 
@@ -32,18 +35,18 @@ We asked: What if the browser decision engine lived entirely in unified memory o
 ### Post 3 (The Breakthrough: Discrete Diffusion)
 Built upon the brilliant foundation of @browser_use's `jev-ultrafast`, DiffBrowse replaces cloud-based action routing with Google DeepMind's DiffusionGemma-26B running locally on Apple MLX Metal, NVIDIA CUDA, and AMD ROCm.
 
-Instead of generating autoregressive tokens one-by-one, DiffBrowse predicts grounded browser actions in a single discrete diffusion step.
+Instead of generating autoregressive tokens one-by-one, DiffBrowse predicts grounded browser actions in a single discrete diffusion step over candidate DOM elements.
 
 ---
 
 ### Post 4 (Speed Breakdown)
-The latency numbers speak for themselves:
+The local latency numbers speak for themselves:
 ⚡ 110 ms — Adaptive Pass-1 Early Exit (when margin ≥ 0.65 or entropy ≤ 0.35)
 ⚡ 200–395 ms — Full multi-pass diffusion refinement
 ⚡ 220 ms — Multi-turn KV prefix caching (reusing goal embeddings)
 ⚡ 241 ms — Resident offline text synthesis (no OpenRouter/OpenAI needed)
 
-Total decision cycle: ~300ms. Faster than human reaction time.
+Total local decision cycle: ~300ms. Faster than human reaction time.
 
 ---
 
@@ -61,10 +64,10 @@ DiffBrowse runs where your data lives:
 DiffBrowse is an open-source evolution of @browser_use’s `jev-ultrafast`. We maintain exact architectural compatibility and use Jev as our benchmark baseline.
 
 Everything is open source:
-📦 Code & Backends
+📦 Code & Backends (MLX Metal, CUDA, ROCm, Hybrid)
 📊 Benchmark datasets (400 train / 100 val samples)
-🛠️ Metal LoRA fine-tuning scripts
-📈 Full technical write-up & plots
+🛠️ Metal LoRA fine-tuning scripts + trained weights
+📈 Full technical write-up & 9 publication plots
 
 GitHub: https://github.com/maximilianmessing/diffbrowse
 
@@ -101,18 +104,20 @@ Instead of autoregressive generation, DiffBrowse adapts Google DeepMind's Diffus
    - NVIDIA DGX Spark / Hopper: PyTorch CUDA + FlashAttention-2 (~80–160 ms).
    - AMD Strix Halo (Ryzen AI Max 395): PyTorch ROCm 6.2+ / HIP leveraging 128GB unified LPDDR5X (~180–350 ms).
 
-### Benchmarks
-Tested on the Google Flights search task (Zurich → London, one-way, date selection, verified flight cards):
-- **Jev Ultrafast (Cloud Jev + OpenRouter)**: 7.09s total, ~350–500ms network round-trip per step.
-- **DiffBrowse (Apple M-Series Metal / MLX)**: 7.21s total, 110–395ms local decision latency, 0 bytes external egress.
-- **DiffBrowse (NVIDIA DGX Spark / CUDA)**: 6.14s total, 80–160ms decision latency.
-- **Traditional Cloud Agent (Sonnet 3.5 + Screenshots)**: 42.8s total, \$0.48 cost.
+### Benchmarks & Relationship to Jev Ultrafast
+The included demo video (`demo.mp4`) shows the 7.09s Google Flights benchmark established by the upstream `browser-use/jev-ultrafast` project using TypeSafe's cloud Jev and OpenRouter Mercury.
+
+We used that exact 7-second benchmark task as our ground-truth replay dataset (replaying the 17 decision steps across DOM snapshots) to test if local discrete diffusion could match cloud speeds:
+- **Jev Ultrafast (Cloud Jev + OpenRouter)**: 7.09s total, ~350–500ms network round-trip per step (baseline recorded run).
+- **DiffBrowse (Apple M-Series Metal / MLX)**: 110–395ms local decision latency per step, 241ms local form text generation, 0 bytes external egress.
+- **DiffBrowse (NVIDIA DGX Spark / CUDA)**: 80–160ms local decision latency per step, 0 bytes external egress.
+- **Traditional Cloud Agent (Sonnet 3.5 + Screenshots)**: ~40–60s total, \$0.05–\$0.20 per step.
 
 ### Open Source & Next Steps
 DiffBrowse is fully open source under the MIT license. The repo includes:
 - Multi-platform inference engines (`mlx_direct`, `torch_direct`, `hybrid`, `jev`)
 - Interactive web inspector with real-time entropy, margin, and pass telemetry
-- LoRA fine-tuning training scripts on Apple Silicon Metal
+- LoRA fine-tuning training scripts on Apple Silicon Metal (trained adapters included)
 - 500-sample benchmark dataset across flights, Wikipedia, and form automation
 
 Repo: https://github.com/maximilianmessing/diffbrowse  
@@ -124,11 +129,13 @@ We’d love to hear your feedback, bug reports, and ideas for further optimizati
 
 ## 3. LinkedIn / Professional Post
 
-🚀 Excited to release **DiffBrowse**: Bringing sub-second, enterprise-grade, 100% air-gapped browser agency to local silicon!
+🚀 Excited to share **DiffBrowse**: Bringing sub-second, enterprise-grade, 100% air-gapped browser agency to local silicon!
 
 For the past year, AI browser agents have been constrained by high latency (5–15s per step) and data privacy risks (sending internal session cookies and corporate dashboards to external cloud LLMs).
 
-DiffBrowse solves both by using discrete diffusion language models running natively on local hardware:
+Earlier, @Browser Use demonstrated that structured action indexing could achieve 7-second browser tasks on Google Flights using cloud models.
+
+With **DiffBrowse**, we brought that speed 100% local, powered by discrete diffusion running on local hardware:
 🔹 **Apple Silicon (M1–M4)** via Apple MLX
 🔹 **NVIDIA DGX Spark** via CUDA & FlashAttention
 🔹 **AMD Strix Halo** via ROCm on unified LPDDR5X
@@ -139,7 +146,7 @@ Key highlights:
 🎯 Grounded execution over structured DOM elements
 📉 0 API cost per task run
 
-Built as an open-source evolution of @Browser Use’s `jev-ultrafast`, DiffBrowse proves that edge-accelerated discrete diffusion can outperform multi-billion parameter cloud models in latency and cost while providing total data privacy.
+Built as an open-source research fork of `browser-use/jev-ultrafast`, DiffBrowse proves that edge-accelerated discrete diffusion can match and exceed cloud agent decision latencies while providing total data privacy.
 
 Explore the code, benchmark datasets, and technical deep-dive:
 👉 GitHub: https://github.com/maximilianmessing/diffbrowse
