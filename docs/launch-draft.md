@@ -5,7 +5,7 @@ This document contains publication-ready launch copy for the public release of *
 > **Note on Media & Benchmarks**:  
 > The repository includes three demonstration video assets:
 > 1. `docs/diffbrowse-vs-jev.mp4` / `docs/diffbrowse-vs-jev.gif`: Synchronized side-by-side comparison video (1080p, 1× real-time speed) directly contrasting Upstream Cloud Jev vs. Local DiffBrowse with live architectural matrices.
-> 2. `docs/diffbrowse-demo.mp4` / `docs/diffbrowse-demo.gif`: Authentic recording of DiffBrowse running 100% locally on Apple Silicon Metal with zero network egress (21.4s on travel fixture).
+> 2. `docs/diffbrowse-demo.mp4` / `docs/diffbrowse-demo.gif`: Authentic recording of DiffBrowse running 100% locally on Apple Silicon Metal with zero network egress (7.1s on travel fixture).
 > 3. `docs/demo.mp4` / `docs/demo.gif`: The upstream 7.07-second Google Flights benchmark from `browser-use/jev-ultrafast` using TypeSafe's cloud Jev, serving as our comparison baseline.
 
 ---

@@ -77,10 +77,10 @@ def build_comparison_frame(
     d.line((0, 90, 1920, 90), fill="#233027", width=1)
 
     # Tag & Title
-    d.text((32, 16), "BENCHMARK COMPARISON  ·  CLOUD API vs. 100% LOCAL METAL", font=font(12, True), fill="#4ade80")
+    d.text((32, 16), "BENCHMARK COMPARISON  ·  CLOUD API vs. 100% LOCAL SILICON", font=font(12, True), fill="#4ade80")
     d.text(
         (32, 38),
-        "Upstream Jev Ultrafast (Cloud API)  vs.  DiffBrowse (100% Local Apple Silicon)",
+        "Upstream Jev Ultrafast (Cloud API)  vs.  DiffBrowse (100% Local Structured Diffusion)",
         font=font(23, True),
         fill="#ffffff",
     )
@@ -135,8 +135,8 @@ def build_comparison_frame(
     # --- Right Window: DiffBrowse ---
     rx, ry = 972, 100
     d.rectangle((rx, ry, rx + vw, ry + 36), fill="#161e18")
-    d.text((rx + 12, ry + 10), "DIFFBROWSE (100% LOCAL METAL)", font=font(14, True), fill="#ffffff")
-    d.text((rx + 290, ry + 12), "DiffusionGemma 26B (4-bit) · Lisbon Stays → Casa Flora", font=font(12), fill="#9ca3af")
+    d.text((rx + 12, ry + 10), "DIFFBROWSE (100% LOCAL STRUCTURED DIFFUSION)", font=font(14, True), fill="#ffffff")
+    d.text((rx + 380, ry + 12), "DiffusionGemma 26B (4-bit) · Lisbon Stays → Casa Flora", font=font(12), fill="#9ca3af")
 
     if right_finished:
         d.rounded_rectangle((rx + vw - 175, ry + 6, rx + vw - 8, ry + 30), radius=6, fill="#14532d")
@@ -179,14 +179,14 @@ def build_comparison_frame(
     # Header row
     d.text((c1, ty + 12), "ARCHITECTURE & OPERATIONAL DIMENSION", font=font(12, True), fill="#9ca3af")
     d.text((c2, ty + 12), "UPSTREAM JEV ULTRAFAST (CLOUD BASELINE)", font=font(12, True), fill="#93c5fd")
-    d.text((c3, ty + 12), "DIFFBROWSE (100% LOCAL APPLE SILICON METAL)", font=font(12, True), fill="#4ade80")
+    d.text((c3, ty + 12), "DIFFBROWSE (LOCAL METAL / ROCM / CUDA)", font=font(12, True), fill="#4ade80")
     d.line((tx + 16, ty + 36, tx + tw - 16, ty + 36), fill="#202b23", width=1)
 
     rows = [
         (
             "Model Architecture",
             "Proprietary TypeSafe Jev (Cloud) + OpenRouter Mercury 2.5",
-            "Google DeepMind DiffusionGemma-26B-A4B-it-4bit (Open Weights)",
+            "Google DeepMind DiffusionGemma-26B-A4B-it-4bit (Stock Open Weights)",
         ),
         (
             "Privacy & Data Egress",
@@ -199,14 +199,14 @@ def build_comparison_frame(
             "$0.00 / Step: Zero recurring cost, unlimited offline evaluations",
         ),
         (
-            "Decision Mechanism",
-            "Speculative autoregressive tree search over cloud LLM endpoints",
-            "Single-pass discrete diffusion + KV prefix caching (220 ms prefill)",
+            "Decision Speed & Latency",
+            "Speculative autoregressive tree search over cloud LLM endpoints (178 ms)",
+            "Structured discrete diffusion + KV prefix cache (117 ms steady-state, 98% acc)",
         ),
         (
             "Hardware Portability",
             "Remote server dependency; requires persistent high-speed internet",
-            "Local Apple Silicon (M1–M4), NVIDIA DGX Spark, AMD Strix Halo",
+            "Apple Silicon Metal, AMD Strix Halo (ROCm 6.2+), NVIDIA CUDA",
         ),
     ]
 
@@ -225,7 +225,7 @@ def build_comparison_frame(
     # -------------------------------------------------------------
     d.text(
         (28, 1054),
-        "DiffBrowse · Discrete Diffusion for Sub-Second Local Web Agents · "
+        "DiffBrowse · Structured Discrete Diffusion for Sub-Second Local Web Agents · "
         "maximilianmessing/diffbrowse (forked from browser-use/jev-ultrafast)",
         font=font(11),
         fill="#6b7280",

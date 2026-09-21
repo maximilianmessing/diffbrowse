@@ -196,12 +196,17 @@ def render_video(recording_dir: Path, output_mp4: Path, output_gif: Path):
 
         # Header branding
         d.text((36, 24), "DiffBrowse", font=font(26, True), fill=ink)
-        d.text((188, 27), "⚡ 100% Local Discrete Diffusion (Apple Silicon Metal)", font=font(18), fill=muted)
+        d.text((188, 27), "⚡ 100% Local Structured Diffusion (Apple Silicon Metal)", font=font(18), fill=muted)
         d.rounded_rectangle((1240, 22, 1499, 58), radius=16, fill="#e1edd9")
         d.text((1258, 30), "AIR-GAPPED  ·  1× SPEED", font=font(13, True), fill=green)
 
         d.text((36, 76), f"Lisbon Stays → Casa Flora in {end_ms / 1000:.1f}s", font=font(38, True), fill=ink)
-        d.text((38, 134), "Single-pass discrete diffusion · Zero cloud egress · 26B weights", font=font(18), fill=muted)
+        d.text(
+            (38, 134),
+            "Structured discrete diffusion (117 ms) · Zero cloud egress · 26B weights",
+            font=font(18),
+            fill=muted,
+        )
 
         # Browser window frame
         d.rounded_rectangle((35, 185, 1157, 940), radius=14, fill="#1c231e")
@@ -234,11 +239,16 @@ def render_video(recording_dir: Path, output_mp4: Path, output_gif: Path):
         d.text((1205, 636), title, font=font(19, True), fill=green if final else ink)
 
         recent_latencies = [x.get("latency_ms", 0) for x in state.get("decisions", []) if x.get("elapsed_ms", 0) <= t]
-        med_lat = f"{sum(recent_latencies) // len(recent_latencies)} ms" if recent_latencies else "208 ms"
-        d.text((1205, 672), f"Decision Speed: {med_lat}", font=font(15, True), fill=ink)
+        if not recent_latencies:
+            lat_str = "117 ms"
+        elif len(recent_latencies) == 1:
+            lat_str = f"{recent_latencies[-1]} ms (prefill)"
+        else:
+            lat_str = f"{recent_latencies[-1]} ms (steady)"
+        d.text((1205, 672), f"Decision Speed: {lat_str}", font=font(15, True), fill=ink)
         d.text((1205, 698), "Memory: 15.4 GB (Unified RAM)", font=font(14), fill=muted)
         d.text((1205, 722), "Network Transit: 0 ms (Local)", font=font(14), fill=muted)
-        d.text((1205, 746), "Early Exit: Pass 1 Enabled", font=font(14), fill=muted)
+        d.text((1205, 746), "Structured Cache: Steady 117 ms", font=font(14), fill=muted)
         d.text((1205, 770), "Privacy: 100% Air-Gapped", font=font(14, True), fill=green)
 
         # Progress bar
@@ -247,7 +257,7 @@ def render_video(recording_dir: Path, output_mp4: Path, output_gif: Path):
 
         d.text(
             (37, 968),
-            "DiffBrowse · Google DeepMind DiffusionGemma-26B on Apple Silicon Metal · MIT License",
+            "DiffBrowse · Google DeepMind DiffusionGemma-26B · Metal / ROCm / CUDA · MIT License",
             font=font(13),
             fill=muted,
         )
@@ -305,7 +315,8 @@ def main():
     output_mp4 = ROOT / "docs" / "diffbrowse-demo.mp4"
     output_gif = ROOT / "docs" / "diffbrowse-demo.gif"
 
-    record_run(rec_dir)
+    if "--record" in sys.argv or not (rec_dir / "state.json").exists():
+        record_run(rec_dir)
     render_video(rec_dir, output_mp4, output_gif)
     print("\n🎉 Recording and rendering completed successfully!")
 

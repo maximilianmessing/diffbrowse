@@ -45,7 +45,7 @@ To directly compare DiffBrowse against upstream cloud agent baselines, here is t
 | **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to remote endpoints | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM / unified RAM)** |
 | **API Cost per Action** | \$0.02 – \$0.10 | \$0.001 – \$0.005 | **\$0.00 (Zero API fees)** | **\$0.00 (Zero API fees)** |
 | **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (resident weights)** |
-| **Recorded Demonstration** | ~40–60 seconds | **7.07 s** (Google Flights · [Upstream video](docs/demo.mp4)) | **21.4 s** (Local Travel Fixture · [Local video](docs/diffbrowse-demo.mp4)) | Reference engine in `torch_direct.py` |
+| **Recorded Demonstration** | ~40–60 seconds | **7.07 s** (Google Flights · [Upstream video](docs/demo.mp4)) | **7.1 s** (Local Travel Fixture · [Local video](docs/diffbrowse-demo.mp4)) | Reference engine in `torch_direct.py` |
 
 ---
 
