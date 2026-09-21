@@ -12,7 +12,7 @@ def main():
     backend = MlxDiffusionDirectBackend()
 
     context = {
-        "goal": "Find one-way flights from Zurich to London on September 20, 2026, for one adult in economy.",
+        "goal": "Find one-way flights from Zurich to London on September 27, 2026, for one adult in economy.",
         "field": {"label": "Where from? (Departure airport)", "role": "textbox", "value": ""},
         "page": {"title": "Google Flights", "text": "Find and book flights with Google Flights"},
         "recent_actions": [],
@@ -32,7 +32,7 @@ def main():
 
     # Second warm call in resident memory
     context2 = {
-        "goal": "Find one-way flights from Zurich to London on September 20, 2026, for one adult in economy.",
+        "goal": "Find one-way flights from Zurich to London on September 27, 2026, for one adult in economy.",
         "field": {"label": "Where to? (Destination airport)", "role": "textbox", "value": ""},
         "page": {"title": "Google Flights", "text": "Find and book flights with Google Flights"},
         "recent_actions": [{"action": "Type in Where from?", "text": "Zurich"}],

@@ -89,7 +89,8 @@ class MlxDiffusionStructuredBackend:
         offline_only: bool = True,
         enable_prefix_caching: bool = True,
         compile_graph: bool = False,
-        adaptive_escalation: bool = True,
+        adaptive_escalation: bool = False,
+        noise_draw_fallback: bool = False,
         pass1_margin_threshold: float = 0.65,
         pass1_entropy_threshold: float = 0.35,
         use_attention_isolation: bool = True,
@@ -104,13 +105,14 @@ class MlxDiffusionStructuredBackend:
         self.offline_only = offline_only
         self.enable_prefix_caching = enable_prefix_caching
         self.compile_graph = compile_graph
+        self.noise_draw_fallback = noise_draw_fallback
         self.pass1_margin_threshold = pass1_margin_threshold
         self.pass1_entropy_threshold = pass1_entropy_threshold
         self.use_attention_isolation = use_attention_isolation
         self.use_temperature_schedule = use_temperature_schedule
         self.hierarchical_partitioning = hierarchical_partitioning
 
-        # Resolve mode-specific defaults if not explicitly overridden
+        # Plan stage 3: initial default is 1 read × 1 pass. No automatic escalation.
         if mode == "initial_default":
             self.num_reads = num_reads if num_reads is not None else 1
             self.num_passes = num_passes if num_passes is not None else 1
@@ -667,8 +669,8 @@ class MlxDiffusionStructuredBackend:
                     op_mar_2 >= self.pass1_margin_threshold or op_ent_2 <= self.pass1_entropy_threshold
                 )
 
-                if is_pass2_confident:
-                    escalation_stage = "pass2_refinement"
+                if is_pass2_confident or not self.noise_draw_fallback:
+                    escalation_stage = "pass2_refinement" if is_pass2_confident else "pass2_commit"
                     read_distributions.append(p2_probs)
                     read_top_choices.append(p2_tops)
                     read_allowed_mass.append(p2_mass)
@@ -676,7 +678,7 @@ class MlxDiffusionStructuredBackend:
                     read_margin.append(p2_mar)
                     read_validity.append(p2_val)
                 else:
-                    # Uncertainty persists after Pass 2 -> Fall back to averaging 4 independent noise draws
+                    # Offline accuracy path. A live calendar step cannot afford four more full forwards.
                     escalation_stage = "multi_read_draws"
                     read_distributions.append(p2_probs)
                     read_top_choices.append(p2_tops)
@@ -796,7 +798,7 @@ class MlxDiffusionStructuredBackend:
             action_id = controls[selected_operation]["id"]
             selected_target = None
         elif selected_operation in ("DONE", "BLOCKED"):
-            action_id = selected_operation.lower()
+            action_id = selected_operation
             selected_target = None
 
         if not action_id:

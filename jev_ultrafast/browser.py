@@ -162,13 +162,19 @@ class Browser:
                 pass
         for attempt in range(10):
             try:
-                return browser_operation(
+                info = browser_operation(
                     {"operation": "observe", "session": self.session, "screenshot": screenshot}
                 )
             except StalePage:
                 if attempt == 9:
                     raise
                 time.sleep(0.02)
+                continue
+            # A menu close can mark the whole page aria-hidden for a frame. Pixels stay
+            # painted, but the reader then reports no text and no controls.
+            if _snapshot_has_content(info) or attempt == 9:
+                return info
+            time.sleep(0.05)
         raise StalePage("Page did not settle")
 
     def fresh(self, page, action=None):
@@ -196,6 +202,12 @@ class Browser:
         if self.target:
             cdp("Target.closeTarget", targetId=self.target)
             self.target = None
+
+
+def _snapshot_has_content(info):
+    if (info.get("text") or "").strip():
+        return True
+    return any(action.get("kind") != "wait" for action in info.get("actions") or [])
 
 
 def fingerprint(state):

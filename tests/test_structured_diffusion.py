@@ -429,6 +429,21 @@ def test_decision_request_pure_builder():
     assert req["state"]["page"]["title"] == "Flight Booking"
 
 
+def test_initial_default_is_one_pass_without_escalation():
+    tok = MockTokenizer()
+    model = MockDiffusionModel(target_token_id=ord("A") - 2)
+    proc = SimpleNamespace(tokenizer=tok)
+    backend = MlxDiffusionStructuredBackend(model=model, processor=proc, max_canvas_width=64)
+    assert backend.num_reads == 1
+    assert backend.num_passes == 1
+    assert backend.adaptive_escalation is False
+
+    state = sample_browser_state()
+    decision = backend.choose("Click round trip", state, action_space(state["actions"]), [])
+    assert decision.metadata["escalation_stage"] == "deterministic_fixed"
+    assert decision.metadata["actual_forward_passes"] == 1
+
+
 def test_adaptive_escalation_early_exit():
     tok = MockTokenizer()
     # Confident model: target_token_id has high logit -> Pass 1 early exit
@@ -505,6 +520,7 @@ def test_adaptive_escalation_noise_draws_fallback():
         processor=proc,
         mode="initial_default",
         adaptive_escalation=True,
+        noise_draw_fallback=True,
         pass1_margin_threshold=0.65,
         pass1_entropy_threshold=0.35,
         max_canvas_width=64,

@@ -176,7 +176,7 @@ from jev_ultrafast import Agent
 
 with Agent(
     url="https://www.google.com/travel/flights?hl=en",
-    goal="Find one-way flights from Zurich to London on September 20, 2026, "
+    goal="Find one-way flights from Zurich to London on September 27, 2026, "
          "for one adult in economy. Stop when flight options are visible.",
 ) as agent:
     for step in agent.run():

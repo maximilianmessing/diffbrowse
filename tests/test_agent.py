@@ -227,6 +227,35 @@ def test_stale_observation_preserves_executed_action(runner):
     runner.state["browser"].act.assert_called_once()
 
 
+def test_empty_snapshot_is_reread_until_content_returns(monkeypatch):
+    import jev_ultrafast.browser as browser
+
+    reader = browser.Browser.__new__(browser.Browser)
+    reader.after_input = None
+    reader.session = "test"
+    empty = {
+        "text": "",
+        "actions": [{"id": "wait", "kind": "wait", "label": "Wait for the page to update"}],
+    }
+    ready = {
+        "text": "Flights\nWhere to?",
+        "actions": [
+            {"id": "e1", "kind": "click", "label": "Where to?"},
+            {"id": "wait", "kind": "wait", "label": "Wait for the page to update"},
+        ],
+    }
+    calls = {"n": 0}
+
+    def operation(_request):
+        calls["n"] += 1
+        return empty if calls["n"] == 1 else ready
+
+    monkeypatch.setattr(browser, "browser_operation", operation)
+    monkeypatch.setattr(browser.time, "sleep", lambda *_args: None)
+    assert reader.observe(screenshot=False)["text"] == "Flights\nWhere to?"
+    assert calls["n"] == 2
+
+
 def test_observation_is_one_atomic_browser_read(monkeypatch):
     import jev_ultrafast.browser as browser
 
@@ -282,15 +311,15 @@ def test_flight_verification_rejects_wrong_trip(changed):
 
     actual = {
         "url": "https://www.google.com/travel/flights/search?tfs=example",
-        "text": "Track prices from Zürich to London departing 2026-09-20",
+        "text": "Track prices from Zürich to London departing 2026-09-27",
         "actions": [
             {"label": k, "value": v}
             for k, v in [
                 ("Change ticket type. One way", "One way"),
                 ("Where from?", "Zürich"),
                 ("Where to?", "London"),
-                ("Departure", "Sun, Sep 20"),
-                ("Nonstop flight on Sunday, September 20. Select flight", ""),
+                ("Departure", "Sun, Sep 27"),
+                ("Nonstop flight on Sunday, September 27. Select flight", ""),
             ]
         ],
     }

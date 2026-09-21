@@ -52,8 +52,11 @@
       e.getAttribute('aria-expanded'),e.getAttribute('aria-checked'),e.getAttribute('aria-selected'),
       e.getAttribute('href'),scope?.innerText?.slice(0,6000)||''];
   };
+  const dialogs=[...document.querySelectorAll('[role="dialog"]')].filter(visible);
+  const dialog=dialogs.length ? dialogs[dialogs.length-1] : null;
   const actions=[];
   for (const e of document.querySelectorAll(selector)) {
+    if (dialog && !dialog.contains(e)) continue;
     if (!safe(e) || !visible(e) || e.matches(':disabled') || e.closest('[aria-disabled="true"]')) continue;
     // Exclude footer, legal, and site settings boilerplate
     if (e.closest('footer, [role="contentinfo"]')) continue;
@@ -103,7 +106,7 @@
       if (editable) actions.push({...base,kind:'click',value,label:'Open '+base.label});
     }
   }
-  const words=[], walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const words=[], walker=document.createTreeWalker(dialog || document.body,NodeFilter.SHOW_TEXT);
   const range=document.createRange(); let node,length=0;
   while ((node=walker.nextNode()) && length<6000) {
     const value=node.textContent.trim(), parent=node.parentElement;

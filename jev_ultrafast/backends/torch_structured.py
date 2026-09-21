@@ -564,7 +564,7 @@ class TorchDiffusionStructuredBackend:
 
         # Reconstruct action ID
         if selected_operation == "DONE":
-            action_id = "done"
+            action_id = "DONE"
             top_prob = final_probs.get("operation", {}).get("DONE", 0.99)
             margin = final_mar.get("operation", 1.0)
             entropy = final_ent.get("operation", 0.0)
