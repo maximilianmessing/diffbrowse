@@ -3,7 +3,9 @@
 This document contains publication-ready launch copy for the public release of **DiffBrowse** (`maximilianmessing/diffbrowse`), showcasing the first sub-second, 100% air-gapped local browser agent powered by discrete diffusion models.
 
 > **Note on Media & Benchmarks**:  
-> The demonstration video (`demo.mp4` / `demo.gif`) in the repository shows the 7.09-second Google Flights benchmark established by the foundational [`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast) project using TypeSafe's cloud Jev. DiffBrowse uses this verified task as its ground-truth benchmark, proving that local discrete diffusion running on edge silicon can match cloud decision speeds with zero data egress.
+> The repository includes two demonstration videos:
+> 1. `docs/diffbrowse-demo.mp4` / `docs/diffbrowse-demo.gif`: An authentic recording of DiffBrowse running 100% locally on Apple Silicon Metal with zero network egress.
+> 2. `docs/demo.mp4` / `docs/demo.gif`: The upstream 7.09-second Google Flights benchmark from `browser-use/jev-ultrafast` using TypeSafe's cloud Jev, serving as our comparison baseline.
 
 ---
 
@@ -12,13 +14,11 @@ This document contains publication-ready launch copy for the public release of *
 ### Post 1 (The Hook & Video)
 Browser agents shouldn’t take 10 seconds to click a button.
 
-Earlier, @browser_use demonstrated that structured action indexing could search Google Flights in 7.1s using cloud models.
+Introducing **DiffBrowse** ⚡ — the first sub-second, 100% air-gapped local browser agent powered by discrete diffusion on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo.
 
-Introducing **DiffBrowse** ⚡ — bringing that exact benchmark 100% local and air-gapped on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo using discrete diffusion.
+Watch it run completely offline on Apple Silicon Metal at 1× speed: [Attach diffbrowse-demo.mp4 / diffbrowse-demo.gif]
 
-Watch the baseline run: [Attach demo.mp4 / demo.gif]
-
-Here is how we achieve sub-second browser decisions without a single cloud API 🧵👇
+Zero cloud APIs. Zero data leaves your machine. 🧵👇
 
 ---
 

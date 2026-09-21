@@ -12,6 +12,10 @@
 
 **DiffBrowse** transforms browser automation by replacing slow, expensive, cloud-dependent autoregressive LLMs with **local discrete diffusion**. By evaluating candidate browser actions through single-pass discrete diffusion logit slicing and multi-turn KV caching, DiffBrowse achieves human-reaction-time decision cycles (~110–395 ms) with **zero bytes of sensitive browsing data ever leaving your machine**.
 
+<a href="docs/diffbrowse-demo.mp4"><img src="docs/diffbrowse-demo.gif" alt="DiffBrowse running 100% locally on Apple Silicon Metal at 1× speed" width="100%" /></a>
+
+[Watch the 100% Local DiffBrowse Demo](docs/diffbrowse-demo.mp4) · [Upstream Cloud Baseline Video](docs/demo.mp4) · [Hardware Guide](docs/hardware_acceleration.md) · [Technical Report](docs/blog_post.md)
+
 ---
 
 ## Why DiffBrowse?
