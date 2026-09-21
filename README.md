@@ -18,15 +18,34 @@
 
 ---
 
+## ⚔️ Side-by-Side Comparison: Cloud API vs. 100% Local Metal
+
+To directly compare DiffBrowse against upstream cloud agent baselines, here is the synchronized side-by-side evaluation of **Upstream Jev Ultrafast** (Cloud API) versus **DiffBrowse** (100% Local Apple Silicon Metal) running at authentic 1× real-time speed:
+
+<a href="docs/diffbrowse-vs-jev.mp4"><img src="docs/diffbrowse-vs-jev.gif" alt="Side-by-side comparison between Upstream Jev Ultrafast (Cloud API) and DiffBrowse (100% Local Apple Silicon Metal) at 1× real-time speed" width="100%" /></a>
+
+[Download High-Res Comparison MP4 (1080p, 1× Speed)](docs/diffbrowse-vs-jev.mp4) · [Local Demo Video](docs/diffbrowse-demo.mp4) · [Upstream Baseline Video](docs/demo.mp4)
+
+| Dimension | Upstream Jev Ultrafast (Cloud Baseline) | DiffBrowse (100% Local Apple Silicon Metal) |
+| :--- | :--- | :--- |
+| **Model Weights** | Proprietary TypeSafe Jev (Cloud) + OpenRouter Mercury 2.5 | Google DeepMind `DiffusionGemma-26B-A4B-it-4bit` (Open Weights) |
+| **Data Privacy & Egress** | ⚠️ Public Cloud Egress: Live DOM and user queries sent over web | 🛡️ **100% Air-Gapped**: Zero network bytes leave host RAM |
+| **Operating Cost** | Paid API tokens (~$0.005 / step) + rate limits | **$0.00 / Step**: Zero recurring cost, infinite local runs |
+| **Decision Mechanism** | Speculative autoregressive tree search over remote endpoints | Single-pass discrete diffusion + KV prefix caching (220 ms) |
+| **Hardware Portability** | Dependent on third-party cloud uptime & internet | Native on Apple Silicon (M1–M4), NVIDIA DGX Spark, AMD Strix Halo |
+
+
+---
+
 ## Why DiffBrowse?
 
-| Metric | Traditional Cloud Agent (Sonnet / GPT-4o) | Jev Ultrafast (Cloud Jev + OpenRouter) | **DiffBrowse (Apple Silicon Metal / MLX)** | **DiffBrowse (NVIDIA DGX / Hopper CUDA)** |
+| Metric | Traditional Cloud Agent (Sonnet / GPT-4o) | Upstream Jev Ultrafast (Cloud Jev) | **DiffBrowse (Apple Silicon Metal / MLX)** | **DiffBrowse (NVIDIA DGX / AMD Strix via PyTorch)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Decision Latency** | 3,000 – 8,000 ms | 350 – 500 ms (API transit) | **110 ms** (Pass 1 exit) / **200–395 ms** | **80 – 160 ms** |
-| **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to TypeSafe/OpenRouter | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM)** |
+| **Decision Latency** | 3,000 – 8,000 ms | 350 – 500 ms (API transit) | **110 ms** (Pass 1 exit) / **200–395 ms** (measured) | **80–160 ms** (CUDA) / **180–350 ms** (ROCm) |
+| **Privacy / Security** | ❌ Full DOM & screenshots sent to cloud | ❌ State sent to TypeSafe/OpenRouter | ✅ **100% Air-gapped (Local RAM)** | ✅ **100% Air-gapped (Local VRAM / unified RAM)** |
 | **API Cost per Action** | \$0.02 – \$0.10 | \$0.001 – \$0.005 | **\$0.00 (Zero API fees)** | **\$0.00 (Zero API fees)** |
-| **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (120 ms resident weights)** |
-| **Google Flights Task** | ~40–60 seconds | **7.09 s** ([Upstream baseline video](docs/demo.mp4)) | **Replay & local model verified** (110–395 ms/step) | **Replay & local model verified** (80–160 ms/step) |
+| **Offline Form Synthesis** | ❌ External API required | ❌ External text model required | ✅ **Built-in (241 ms resident weights)** | ✅ **Built-in (resident PyTorch weights)** |
+| **Recorded Demonstration** | ~40–60 seconds | **7.07 s** (Google Flights · [Upstream video](docs/demo.mp4)) | **21.4 s** (Lisbon Stays · [Local video](docs/diffbrowse-demo.mp4)) | Supported via `TorchDiffusionDirectBackend` |
 
 ---
 

@@ -3,22 +3,44 @@
 This document contains publication-ready launch copy for the public release of **DiffBrowse** (`maximilianmessing/diffbrowse`), showcasing the first sub-second, 100% air-gapped local browser agent powered by discrete diffusion models.
 
 > **Note on Media & Benchmarks**:  
-> The repository includes two demonstration videos:
-> 1. `docs/diffbrowse-demo.mp4` / `docs/diffbrowse-demo.gif`: An authentic recording of DiffBrowse running 100% locally on Apple Silicon Metal with zero network egress.
-> 2. `docs/demo.mp4` / `docs/demo.gif`: The upstream 7.09-second Google Flights benchmark from `browser-use/jev-ultrafast` using TypeSafe's cloud Jev, serving as our comparison baseline.
+> The repository includes three demonstration video assets:
+> 1. `docs/diffbrowse-vs-jev.mp4` / `docs/diffbrowse-vs-jev.gif`: Synchronized side-by-side comparison video (1080p, 1× real-time speed) directly contrasting Upstream Cloud Jev vs. Local DiffBrowse with live architectural matrices.
+> 2. `docs/diffbrowse-demo.mp4` / `docs/diffbrowse-demo.gif`: Authentic recording of DiffBrowse running 100% locally on Apple Silicon Metal with zero network egress (21.4s on travel fixture).
+> 3. `docs/demo.mp4` / `docs/demo.gif`: The upstream 7.07-second Google Flights benchmark from `browser-use/jev-ultrafast` using TypeSafe's cloud Jev, serving as our comparison baseline.
 
 ---
 
-## 1. X / Twitter Launch Thread
+## 1. The Single Standalone Tweet (Single-Post Format)
 
-### Post 1 (The Hook & Video)
-Browser agents shouldn’t take 10 seconds to click a button.
+> **Copy & paste as a single tweet on X / Twitter (attach `docs/diffbrowse-vs-jev.mp4`):**
+
+Browser agents shouldn't take 10 seconds to click a button—and your browsing session shouldn't leave your machine.
+
+Introducing **DiffBrowse** ⚡ — sub-second, 100% air-gapped local browser automation powered by discrete diffusion on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo.
+
+Instead of generating tokens autoregressively, DiffBrowse evaluates indexed DOM candidates in parallel via Google DeepMind's DiffusionGemma-26B (4-bit).
+
+⚡ 110 ms Pass-1 early exit (~230 ms median)  
+⚡ Multi-turn KV caching (~220 ms prefill)  
+⚡ Resident offline text generation (241 ms)  
+⚡ Zero cloud APIs · Zero data egress · $0.00 cost  
+
+Built upon @browser_use's jev-ultrafast foundation. Here's the 1× real-time side-by-side comparison with cloud Jev:
+
+Code, weights & benchmark: https://github.com/maximilianmessing/diffbrowse
+
+---
+
+## 2. X / Twitter Launch Thread (Alternative Multi-Post Format)
+
+### Post 1 (The Hook & Comparison Video)
+Browser agents shouldn’t take 10 seconds to click a button. And your private data shouldn't leave your machine.
 
 Introducing **DiffBrowse** ⚡ — the first sub-second, 100% air-gapped local browser agent powered by discrete diffusion on Apple Silicon Metal, NVIDIA DGX, and AMD Strix Halo.
 
-Watch it run completely offline on Apple Silicon Metal at 1× speed: [Attach diffbrowse-demo.mp4 / diffbrowse-demo.gif]
+Here is the side-by-side comparison at 1× real-time speed: Upstream Cloud Jev vs. 100% Local DiffBrowse [Attach diffbrowse-vs-jev.mp4 / diffbrowse-vs-jev.gif]:
 
-Zero cloud APIs. Zero data leaves your machine. 🧵👇
+Zero cloud APIs. Zero data egress. $0.00 cost. 🧵👇
 
 ---
 

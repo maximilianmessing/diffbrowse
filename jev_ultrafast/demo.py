@@ -119,6 +119,14 @@ class Handler(BaseHTTPRequestHandler):
             video = ROOT.parent / "docs" / "demo.mp4"
             if video.exists():
                 return self.send(200, video.read_bytes(), "video/mp4")
+        if path == "/diffbrowse-demo.mp4":
+            video = ROOT.parent / "docs" / "diffbrowse-demo.mp4"
+            if video.exists():
+                return self.send(200, video.read_bytes(), "video/mp4")
+        if path == "/diffbrowse-vs-jev.mp4":
+            video = ROOT.parent / "docs" / "diffbrowse-vs-jev.mp4"
+            if video.exists():
+                return self.send(200, video.read_bytes(), "video/mp4")
         files = {
             "/": ("index.html", "text/html"),
             "/app.js": ("app.js", "text/javascript"),
